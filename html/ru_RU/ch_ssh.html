@@ -1,0 +1,560 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>&#1043;&#1083;&#1072;&#1074;&#1072; 6. SVN+SSH</title><link rel="stylesheet" type="text/css" href="css/manual-multipage.css"><meta name="generator" content="DocBook XSL Stylesheets V1.78.1"><link rel="home" href="index.html" title="Git as Subversion"><link rel="up" href="index.html" title="Git as Subversion"><link rel="prev" href="ch_props.html" title="&#1043;&#1083;&#1072;&#1074;&#1072; 5. SVN Properties"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">&#1043;&#1083;&#1072;&#1074;&#1072; 6. SVN+SSH</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch_props.html">&#1055;&#1088;&#1077;&#1076;.</a>&nbsp;</td><th width="60%" align="center">&nbsp;</th><td width="20%" align="right">&nbsp;</td></tr></table><hr></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="ch_ssh"></a>&#1043;&#1083;&#1072;&#1074;&#1072; 6. SVN+SSH</h1></div></div></div>
+    
+    <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e491"></a>Rationale</h2></div></div></div>
+        
+        <p>The SVN protocol is totally unencrypted, and due to the way
+        git-as-svn has to proxy authentication through to git servers,
+        almost all authentication happens in plaintext.</p>
+        <p>Clearly this is undesirable, not only is potentially private
+        code exposed over the svn protocol, but so are passwords and
+        usernames.</p>
+        <p>Traditionally SVN has two ways of preventing this:</p>
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <p>Use HTTPS</p>
+            </li><li class="listitem">
+                <p>Use svn+ssh</p>
+            </li></ul></div>
+        <p>The HTTP protocol is substantially different from the SVN
+        protocol and is currently unimplemented in git-as-svn</p>
+        <p>Thus leaving the svn+ssh mechanism.</p>
+    </div>
+    <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e503"></a>How does SVN+SSH work?</h2></div></div></div>
+        
+        <p>Normally when a client calls
+        <code class="code">svn &lt;command&gt; svn://host/path</code>, for an appropriate
+        <code class="code">&lt;command&gt;</code>, the subversion client will open a 
+        connection to the <code class="code">host</code> server on port 3690. After an
+        initial handshake as per the SVN protocol the server will ask the
+        client to authenticate.</p>
+        <p>If possible the client will attempt to perform its actions
+        anonymously, and if necessary the server will then ask for
+        reauthentication.</p>
+        <p>If a client calls
+        <code class="code">svn &lt;command&gt; svn+ssh//username@host/path</code>,
+        the subversion client will internally ask ssh to open connection
+        using something equivalent to:
+        <code class="code">ssh username@host "svnserve -t"</code>.</p>
+        <p>If ssh succesfully connects, the SSH will run
+        <code class="code">svnserve -t</code> on the host, which will then proceed with
+        the SVN protocol handshake over its <code class="code">stdin</code> and
+        <code class="code">stdout</code>, and the client will use the <code class="code">stdin</code>
+        and <code class="code">stdout</code> of the ssh connection.</p>
+        <p>When the server asks the client to authenticate, the server
+        will offer the <code class="code">EXTERNAL</code> authentication mechanism.
+        (Possibly with the <code class="code">ANONYMOUS</code> mechanism.)</p>
+        <p>If the client uses <code class="code">EXTERNAL</code> mechanism, the
+        server sets the user to be either the currently logged in user
+        from the ssh, (or an optional tunnel-user parameter.)</p>
+        <p>Securing the <code class="code">svnserve -t</code> call and protecting
+        against semi-malicious uses of the <code class="code">--tunnel-user</code>
+        option or even the calling of other commands in cases of multiple
+        users for a single repository requires some thought.</p>
+        <p>Often this is protected through the use of a suitable
+        <code class="code">command=""</code> parameter in the
+        <code class="code">authorized_keys</code> file, coupled with other options.
+        e.g.</p>
+        <p><code class="code">command="/usr/bin/svnserve -t --tunnel-user username",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-rsa ...</code></p>
+        <p>Of note, in this example the command provided by the client
+        is ignored but it could be checked and managed as appropriately.
+        In fact these techniques are used in the
+        <code class="code">authorized_keys</code> files of most <code class="code">git</code>
+        servers.</p>
+        <p>This provides a simple first way to handle
+        <code class="code">svn+ssh</code>, if we set
+        <code class="code">command="nc localhost 3690"</code> then whenever we connect
+        by ssh we will be passed directly to the git-as-svn server. The
+        downside being that the client will be asked to
+        authenticate.</p>
+    </div>
+    <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e538"></a>A better <code class="code">git-as-svn-svnserve</code></h2></div></div></div>
+        
+        <p>Handling the <code class="code">EXTERNAL</code> authentication mechanism
+        properly without creating a new port to listen on and a new
+        adjusted SVN protocol is not possible.</p>
+        <p>However there is another way:</p>
+        <p>We can stand in the middle of the SVN protocol stream, catch
+        the authentication handshake, proxy it before stepping back and
+        letting the client and server talk to each other.</p>
+        <p>We can create a new authentication mechanism on the
+        <code class="code">git-as-svn</code> server that requires a secret token known
+        only by us, to allow us to pass in the external username (or other
+        identifier) as the user authentication using
+        <code class="code">sshKeyUsers</code> to proxy the <code class="code">UserDB</code></p>
+        <p>We can then use 
+        <code class="code">git-as-svn-svnserve-tunnel SECRET EXTERNAL_USERNAME</code> as
+        a replacement for <code class="code">svnserve -t</code> or 
+        <code class="code">nc localhost 3690</code> in the <code class="code">command=""</code>
+        option in authorized_keys.</p>
+        <p>Of course we need to keep the 
+        <code class="code">authorized_keys</code> file up-to-date</p>
+    </div>
+    <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e556"></a>Gitlab &amp; git-as-svn-svnserve</h2></div></div></div>
+        
+        <p>There are two ways that Gitlab manages ssh access.</p>
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <p>Updating the git user's <code class="code">authorized_keys</code>
+                every time a SSH key is changed.</p>
+            </li><li class="listitem">
+                <p>The use of an SSH
+                <code class="code">AuthorizedKeysCommand</code></p>
+            </li></ul></div>
+        <p>First, let's look at the <code class="code">authorized_keys</code>
+        case.</p>
+        <p>Gitlab will update the <code class="code">authorized_keys</code> file
+        over time.</p>
+        <p>If you set the option:
+        <code class="code">gitlab_shell['auth_file']</code> in the
+        <code class="code">gitlab.rb</code> configuration file to a different
+        location, you can catch changes to this file, and change the
+        <code class="code">command=""</code> option to something that will check 
+        whether we are trying to perform svn and handle it if so.</p>
+        <p>The suggested config, at least for Gitlab docker and 
+        assuming that git-as-svn has been installed in
+        <code class="code">/opt/git-as-svn</code> is:</p>
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p><code class="code">/etc/gitlab/gitlab.rb</code>:
+        </p>
+        <pre class="programlisting">
+...
+################################################################################
+## gitlab-shell
+################################################################################
+...
+# gitlab_shell['auth_file'] = "/var/opt/gitlab/.ssh/authorized_keys"
+gitlab_shell['auth_file'] = "/var/opt/gitlab/ssh-shadow/authorized_keys"
+...
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/opt/git-as-svn/config.yaml</code>:
+        </p>
+        <pre class="programlisting">
+!config:
+realm: Git-as-svn Realm
+compressionEnabled: true
+parallelIndexing: true
+
+# Use GitLab repositories
+repositoryMapping: !gitlabMapping
+  path: /var/opt/gitlab/git-data/repositories/
+  # Uncomment following to only handle repositories with specified tags (add them to repositories via Settings -&gt; General -&gt; Tags in GitLab)
+  # repositoryTags:
+  #   - git-as-svn
+  template:
+    branch: master
+    renameDetection: true
+
+# Wrap the Gitlab user database with sshKeyUsers
+userDB: 
+  !sshKeyUsers
+    userDB: !gitlabUsers {}
+    sshKeysToken: CHANGE_THIS_TO_SOMETHING_SECRET
+
+shared:
+  # Web server settings
+  # Used for:
+  #  * detecticting add/remove repositories via GitLab System Hook
+  #  * git-lfs-authenticate script (optionaly)
+  - !web
+    # baseUrl: http://git-as-svn.local/
+    listen:
+    - !http
+      host: localhost
+      port: 8123
+      # Use X-Forwarded-* headers
+      forwarded: true
+  # GitLab LFS Client
+  - !gitlabLfs {}
+  # GitLab server
+  - !gitlab
+    url: http://localhost:3000/
+    hookUrl: http://localhost:8123/
+    token: qytzQc6uYiQfsoqJxGuG
+  # Manage authorized_keys
+  - !sshKeys
+    shadowSSHDirectory: /var/opt/gitlab/ssh-shadow
+    realSSHDirectory: /var/opt/gitlab/.ssh
+    originalAppPath: /opt/gitlab/embedded/service/gitlab-shell/bin/gitlab-shell
+    svnservePath: /opt/git-as-svn/bin/git-as-svn-svnserve
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/opt/git-as-svn/bin/git-as-svn-svnserve</code>:
+        </p>
+        <pre class="programlisting">
+#!/bin/bash
+
+############################################################
+# git-as-svn-svnserve
+#
+# Shadow the default gitlab/gitea shell and allow svnserve
+############################################################
+
+SHADOW_SHELL_PATH="/opt/gitlab/embedded/service/gitlab-shell/bin/gitlab-shell"
+TUNNEL_PATH="/opt/git-as-svn/bin/git-as-svn-svnserve-tunnel"
+KEY="$1"
+REAL_SHELL_PATH="$SHADOW_SHELL_PATH"
+SECRET="CHANGE_THIS_TO_SOMETHING_SECRET"
+
+SSH_ORIGINAL_COMMANDS=($SSH_ORIGINAL_COMMAND)
+
+if [ -n "$SSH_ORIGINAL_COMMAND" ] &amp;&amp; [ "${SSH_ORIGINAL_COMMANDS[0]}" = "svnserve" ] ; then
+    ## TUNNEL TO OUR SVNSERVER WITH MAGIC AUTHENTICATION ##
+    exec "$TUNNEL_PATH" "$SECRET" "$KEY"
+else
+    exec -a "$REAL_SHELL_PATH" "$SHADOW_SHELL_PATH" "$@"
+fi
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/opt/git-as-svn/bin/git-as-svn-svnserve-tunnel</code>:</p>
+        <pre class="programlisting">
+#!/bin/bash
+
+############################################################
+# git-as-svn-svnserve-tunnel
+#
+# Use a bit of bash hackery to implement svnserve -t by
+# pushing stdin to the svn port (3690) but hijack the 
+# authentication phase to pass in the ssh key id
+############################################################
+
+SECRET="$1"
+KEY="$2"
+FAKE_AUTH="( success ( ( EXTERNAL ) 16:Git-as-svn Realm ) )"
+
+function failed {
+    echo "$0: Unable to connect to svn service! Is it running?" 1&gt;&amp;2
+    exit
+}
+trap failed err
+
+OUR_PID=$$
+function finish {
+    pkill -P $OUR_PID
+    exec 3&gt;&amp;- 3&lt;&amp;-
+}
+trap finish EXIT
+
+exec 3&lt;&gt;/dev/tcp/localhost/3690
+
+trap finish err
+
+function read_bracket {
+    BEEN_IN=false
+    NBRACK=0
+
+    while ! $BEEN_IN || [ $NBRACK != 0 ]; do
+        IFS= read -n1 -r -d '' FROM
+        case $FROM in
+            '(')
+            NBRACK=$(($NBRACK + 1))
+            BEEN_IN=true
+            ;;
+            ')')
+            NBRACK=$(($NBRACK - 1))
+            ;;
+            '')
+            break
+        esac
+        echo -ne "$FROM"
+    done
+    IFS= read -n1 -r -d '' FROM
+    echo -ne "$FROM"
+    if [ "X$FROM" = "X" ]; then
+        exec 0&lt;&amp;-
+        exit
+    fi
+}
+
+# Send server capabilities to client
+read_bracket &lt;&amp;3 &gt;&amp;1
+
+# Send client capabilities to server
+read_bracket &lt;&amp;0 &gt;&amp;3
+
+# Get the server authentication
+AUTH_LIST_FROM_SERV=$(read_bracket &lt;&amp;3)
+
+# Send the server our information
+AUTHBODY=$(echo -ne "\0$SECRET\0$KEY" | base64)
+AUTHBODY_LENGTH=${#AUTHBODY}
+echo "( KEY-AUTHENTICATOR ( $AUTHBODY_LENGTH:$AUTHBODY ) )" &gt;&amp;3
+if ! { command &gt;&amp;3; } 2&gt;/dev/null; then
+    exit
+fi
+
+# send the fake auth list to the client
+echo "$FAKE_AUTH" &gt;&amp;1
+if ! { command &gt;&amp;1; } 2&gt;/dev/null; then
+    exit
+fi
+
+# throwaway the client's response
+read_bracket &lt;&amp;0 &gt; /dev/null
+
+# THEN PRETEND THAT THE REST OF IT WENT THAT WAY
+(
+    cat &lt;&amp;3 &gt;&amp;1 &amp;
+    CAT_PID=$!
+    function on_exit {
+        kill $CAT_PID
+    }
+    trap on_exit EXIT
+    wait
+    kill $OUR_PID
+) &amp;
+
+cat &lt;&amp;0 &gt;&amp;3
+pkill -P $OUR_PID
+        </pre>
+        </li></ul></div>
+        <p>In the second case, if we proxy the
+        <code class="code">AuthorizedKeysCommand</code>, and just replace the
+        <code class="code">command=""</code> option as above then we have a working
+        solution.</p>
+        <p>We have two main options, we can keep the same user, e.g.
+        <code class="code">git</code> for both subversion and git, or we could create
+        another user.</p>
+        <p>The first option requires that we proxy the original app
+        and replace it with our own. The second is similar but we leave
+        the original response alone for git, just replacing it for svn</p>
+        <p>The first option is described below.</p>
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p><code class="code">/assets/sshd_config</code>:</p>
+        <pre class="programlisting">
+...
+# AuthorizedKeysCommand /opt/gitlab/embedded/service/gitlab-shell/bin/gitlab-shell-authorized-keys-check git %u %k
+# AuthorizedKeysCommandUser git
+AuthorizedKeysCommand /opt/git-as-svn/bin/git-as-svn-authorized-keys-command git %u %k
+AuthorizedKeysCommandUser git
+...
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/opt/git-as-svn/bin/git-as-svn-authorized-keys-command</code>:</p>
+        <pre class="programlisting">
+#!/bin/bash
+
+############################################################
+# git-as-svn-authorized-keys_command
+#
+# Shadow the default ssh AuthorizedKeysCommand and adjust its
+# output to replace the original command with our svnserve
+############################################################
+
+############################################################
+# For Gitlab Docker:
+############################################################
+ORIGINAL_AUTHORIZED_COMMAND="/opt/gitlab/embedded/service/gitlab-shell/bin/gitlab-shell-authorized-keys-check"
+ORIGINAL_APP_PATH="/opt/gitlab/embedded/service/gitlab-shell/bin/gitlab-shell"
+SVN_SERVE_PATH="/opt/git-as-svn/bin/git-as-svn-svnserve"
+
+exec -a "$ORIGINAL_AUTHORIZED_COMMAND"  "$ORIGINAL_AUTHORIZED_COMMAND" "$@" | sed -e 's|command="'"$ORIGINAL_APP_PATH"'|command="'"$SVN_SERVE_PATH"'|'
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/opt/git-as-svn/config.yaml</code>:</p>
+        <pre class="programlisting">
+!config:
+realm: Git-as-svn Realm
+compressionEnabled: true
+parallelIndexing: true
+
+# Use GitLab repositories
+repositoryMapping: !gitlabMapping
+  path: /var/opt/gitlab/git-data/repositories/
+  # Uncomment following to only handle repositories with specified tags (add them to repositories via Settings -&gt; General -&gt; Tags in GitLab)
+  # repositoryTags:
+  #   - git-as-svn
+  template:
+    branch: master
+    renameDetection: true
+
+# Wrap the Gitlab user database with sshKeyUsers
+userDB: 
+  !sshKeyUsers
+    userDB: !gitlabUsers {}
+    sshKeysToken: CHANGE_THIS_TO_SOMETHING_SECRET
+
+shared:
+  # Web server settings
+  # Used for:
+  #  * detecticting add/remove repositories via GitLab System Hook
+  #  * git-lfs-authenticate script (optionaly)
+  - !web
+    # baseUrl: http://git-as-svn.local/
+    listen:
+    - !http
+      host: localhost
+      port: 8123
+      # Use X-Forwarded-* headers
+      forwarded: true
+  # GitLab LFS Client
+  - !gitlabLfs {}
+  # GitLab server
+  - !gitlab
+    url: http://localhost:3000/
+    hookUrl: http://localhost:8123/
+    token: qytzQc6uYiQfsoqJxGuG
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/opt/git-as-svn/bin/git-as-svn-svnserve</code> and
+        <code class="code">/opt/git-as-svn/bin/git-as-svn-svnserve-tunnel</code> same
+        as above.</p>
+        </li></ul></div>
+    </div>
+    <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e617"></a>Gitea</h2></div></div></div>
+        
+        <p>There are two ways that Gitea manages ssh access.</p>
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <p>If Gitea is deferring to an external SSHD. It will 
+                update the git user's <code class="code">authorized_keys</code>
+                every time a SSH key is changed.</p>
+            </li><li class="listitem">
+                <p>If Gitea is using its own internal SSHD. It will
+                run the <code class="code">gitea serv</code> command each time.</p>
+            </li><li class="listitem">
+                <p>The use of an SSH
+                <code class="code">AuthorizedKeysCommand</code> in Gitea v1.7.0+</p>
+            </li></ul></div> 
+        <p>First, let's look at the <code class="code">authorized_keys</code>
+        case.</p>
+        <p>Gitea will update the <code class="code">authorized_keys</code> file
+        over time.</p>
+        <p>If you set the option:
+        <code class="code">SSH_ROOT_PATH</code> in the <code class="code">[server]</code> of the 
+        gitea <code class="code">app.ini</code> to a shadow location you can catch
+        changes to this file, and change the
+        <code class="code">command=""</code> option to something that will check 
+        whether we are trying to perform svn and handle it if so.</p>
+        <p>The suggested config, at least for Gitea docker, and 
+        assuming that git-as-svn has been installed in
+        <code class="code">/app/git-as-svn</code> is:</p>
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p><code class="code">/data/gitea/conf/app.ini</code>:</p>
+        <pre class="programlisting">
+...
+[server]
+...
+SSH_ROOT_PATH=/data/git/ssh-shadow
+...
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/app/git-as-svn/config.yaml</code>:</p>
+        <pre class="programlisting">
+!config:
+realm: Git-as-svn Realm
+compressionEnabled: true
+parallelIndexing: true
+
+# Use Gitea repositories
+repositoryMapping: !giteaMapping
+  path: /data/git/repositories
+  template:
+    branch: master
+    renameDetection: true
+
+# Use Gitea user database
+userDB:
+  !sshKeyUsers
+    userDB: !giteaUsers {}
+    sshKeysToken: CHANGE_THIS_TO_SOMETHING_SECRET
+
+shared:
+  # Gitea LFS server - uses the GitLab layout
+  - !localLfs
+    path: /data/git/lfs
+    saveMeta: false
+    compress: false
+    layout: GitLab
+  # Gitea server
+  - !gitea
+    url: http://localhost:3000/api/v1
+    #token: de0c16fdc2c2ec5bcb4917922900015d3bceb82b
+    token: 90c68b84fb04e364c2ea3fc42a6a2193144bc07d
+  - !giteaSSHKeys
+  # Or if using Gitea v1.7.0 just: !sshKeys
+    shadowSSHDirectory: /data/git/ssh-shadow
+    realSSHDirectory: /data/git/.ssh
+    originalAppPath: /app/gitea/gitea
+    svnservePath: /app/gitea/git-as-svn-svnserve    
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/app/git-as-svn/bin/git-as-svn-svnserve</code>:</p>
+        <pre class="programlisting">
+#!/bin/bash
+
+############################################################
+# git-as-svn-svnserve
+#
+# Shadow the default gitlab/gitea shell and allow svnserve
+############################################################
+
+SHADOW_SHELL_PATH="/app/gitea/gitea"
+TUNNEL_PATH="/app/git-as-svn/bin/git-as-svn-svnserve-tunnel"
+KEY="$2"
+SUBCOMMAND="$1"
+REAL_SHELL_PATH="$SHADOW_SHELL_PATH"
+
+if [ "$SUBCOMMAND" != "serv" ]; then
+    exec -a "$REAL_SHELL_PATH" "$SHADOW_SHELL_PATH" "$@"
+fi
+
+SECRET="CHANGE_THIS_TO_SOMETHING_SECRET"
+
+SSH_ORIGINAL_COMMANDS=($SSH_ORIGINAL_COMMAND)
+
+if [ -n "$SSH_ORIGINAL_COMMAND" ] &amp;&amp; [ "${SSH_ORIGINAL_COMMANDS[0]}" = "svnserve" ] ; then
+    ## TUNNEL TO OUR SVNSERVER WITH MAGIC AUTHENTICATION ##
+    exec "$TUNNEL_PATH" "$SECRET" "$KEY"
+else
+    exec -a "$REAL_SHELL_PATH" "$SHADOW_SHELL_PATH" "$@"
+fi
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/app/git-as-svn/bin/git-as-svn-svnserve-tunnel</code>
+        should be the same as in the gitlab case.</p>
+        </li></ul></div>
+        <p>For the second case, we need to shadow the gitea binary</p>
+        <p>So we would need to move the original gitea from
+        <code class="code">/app/gitea/gitea</code> to <code class="code">/app/gitea/gitea.shadow</code></p>
+        <p>And either create <code class="code">/app/gitea/gitea</code> as a symbolic
+        link or just copy the below
+        <code class="code">/app/git-as-svn/bin/git-as-svn-svnserve</code> as it.
+        </p>
+        <p><code class="code">/app/git-as-svn/bin/git-as-svn-svnserve</code>:
+        </p><pre class="programlisting">
+#!/bin/bash
+
+############################################################
+# git-as-svn-svnserve
+#
+# Shadow the default gitlab/gitea shell and allow svnserve
+############################################################
+
+SHADOW_SHELL_PATH="/app/gitea/gitea.shadow"
+TUNNEL_PATH="/app/git-as-svn/bin/git-as-svn-svnserve-tunnel"
+KEY="$2"
+SUBCOMMAND="$1"
+REAL_SHELL_PATH="/app/gitea/gitea"
+
+if [ "$SUBCOMMAND" != "serv" ]; then
+    exec -a "$REAL_SHELL_PATH" "$SHADOW_SHELL_PATH" "$@"
+fi
+
+SECRET="CHANGE_THIS_TO_SOMETHING_SECRET"
+
+SSH_ORIGINAL_COMMANDS=($SSH_ORIGINAL_COMMAND)
+
+if [ -n "$SSH_ORIGINAL_COMMAND" ] &amp;&amp; [ "${SSH_ORIGINAL_COMMANDS[0]}" = "svnserve" ] ; then
+    ## TUNNEL TO OUR SVNSERVER WITH MAGIC AUTHENTICATION ##
+    exec "$TUNNEL_PATH" "$SECRET" "$KEY"
+else
+    exec -a "$REAL_SHELL_PATH" "$SHADOW_SHELL_PATH" "$@"
+fi
+        </pre><p>
+        </p>
+        <p><code class="code">/app/git-as-svn/bin/git-as-svn-svnserve-tunnel</code>
+        should be the same as in the gitlab case.</p>
+        <p>Managing the <code class="code">AuthorizedKeysCommand</code>
+        is similar to that in the Gitlab case.</p>
+    </div>
+</div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch_props.html">&#1055;&#1088;&#1077;&#1076;.</a>&nbsp;</td><td width="20%" align="center">&nbsp;</td><td width="40%" align="right">&nbsp;</td></tr><tr><td width="40%" align="left" valign="top">&#1043;&#1083;&#1072;&#1074;&#1072; 5. SVN Properties&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">&#1053;&#1072;&#1095;&#1072;&#1083;&#1086;</a></td><td width="40%" align="right" valign="top">&nbsp;</td></tr></table></div></body></html>

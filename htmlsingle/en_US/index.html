@@ -1,0 +1,1236 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Git as Subversion</title><link rel="stylesheet" type="text/css" href="css/manual-singlepage.css"><meta name="generator" content="DocBook XSL Stylesheets V1.78.1"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div lang="en_US" class="book"><div class="titlepage"><div><div><h1 class="title"><a name="d5e1"></a>Git as Subversion</h1></div><div><h2 class="subtitle">User manual</h2></div><div><div class="author"><h3 class="author"><span class="firstname">Artem</span> <span class="surname">Navrotskiy</span></h3></div></div><div><p class="copyright">Copyright &copy; 2014-2016 Artem Navrotskiy</p></div><div><p class="pubdate">2016</p></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="chapter"><a href="#d5e15">1. About project</a></span></dt><dd><dl><dt><span class="section"><a href="#d5e17">What is it?</a></span></dt><dt><span class="section"><a href="#d5e23">What is project goal?</a></span></dt><dt><span class="section"><a href="#d5e38">How does it work?</a></span></dt><dd><dl><dt><span class="section"><a href="#d5e43">Where is the Subversion data stored?</a></span></dt><dt><span class="section"><a href="#d5e59">How does commit works?</a></span></dt><dt><span class="section"><a href="#d5e83">Unlike other solutions</a></span></dt><dd><dl><dt><span class="section"><a href="#d5e86">GitHub Subversion support</a></span></dt><dt><span class="section"><a href="#d5e94">SubGit</a></span></dt><dt><span class="section"><a href="#d5e102">Subversion repository and git svn</a></span></dt></dl></dd></dl></dd><dt><span class="section"><a href="#d5e109">Features</a></span></dt><dd><dl><dt><span class="section"><a href="#d5e112">What is already there?</a></span></dt><dt><span class="section"><a href="#d5e152">What is lacking?</a></span></dt><dt><span class="section"><a href="#d5e159">Technical limitations</a></span></dt></dl></dd></dl></dd><dt><span class="chapter"><a href="#d5e166">2. Prerequisites</a></span></dt><dd><dl><dt><span class="section"><a href="#d5e168">Recommendations for Subversion-client</a></span></dt><dt><span class="section"><a href="#d5e177">Recommendations for Git-client</a></span></dt><dd><dl><dt><span class="section"><a href="#d5e179">LFS for Git users using SSH protocol</a></span></dt><dt><span class="section"><a href="#d5e187">LFS for Git users using HTTP protocol</a></span></dt></dl></dd><dt><span class="section"><a href="#d5e198">Recommendations for Git-repositories</a></span></dt><dd><dl><dt><span class="section"><a href="#d5e200">File .gitattributes</a></span></dt></dl></dd></dl></dd><dt><span class="chapter"><a href="#d5e206">3. Installation</a></span></dt><dd><dl><dt><span class="section"><a href="#d5e208">Quick start</a></span></dt><dt><span class="section"><a href="#d5e240">Installation on Debian/Ubuntu</a></span></dt><dd><dl><dt><span class="section"><a href="#d5e244">Package git-as-svn</a></span></dt><dd><dl><dt><span class="section"><a href="#d5e254">Used directories</a></span></dt></dl></dd><dt><span class="section"><a href="#git-lfs-authenticate">Package git-as-svn-lfs</a></span></dt></dl></dd><dt><span class="section"><a href="#d5e314">Build from source code</a></span></dt></dl></dd><dt><span class="chapter"><a href="#d5e329">4. GitLab integration</a></span></dt><dd><dl><dt><span class="section"><a href="#d5e331">Recommended GitLab patches</a></span></dt><dt><span class="section"><a href="#d5e351">GitLab intergration points</a></span></dt><dt><span class="section"><a href="#d5e377">Adding a SVN-link to GitLab interface</a></span></dt><dt><span class="section"><a href="#d5e388">Configuration file example</a></span></dt></dl></dd><dt><span class="chapter"><a href="#ch_props">5. SVN Properties</a></span></dt><dd><dl><dt><span class="section"><a href="#d5e415">File .gitignores</a></span></dt><dt><span class="section"><a href="#d5e443">File .gitattributes</a></span></dt><dt><span class="section"><a href="#d5e468">File .tgitconfig</a></span></dt></dl></dd><dt><span class="chapter"><a href="#ch_ssh">6. SVN+SSH</a></span></dt><dd><dl><dt><span class="section"><a href="#d5e489">Rationale</a></span></dt><dt><span class="section"><a href="#d5e501">How does SVN+SSH work?</a></span></dt><dt><span class="section"><a href="#d5e536">A better <code class="code">git-as-svn-svnserve</code></a></span></dt><dt><span class="section"><a href="#d5e554">Gitlab &amp; git-as-svn-svnserve</a></span></dt><dt><span class="section"><a href="#d5e615">Gitea</a></span></dt></dl></dd></dl></div>
+  
+
+  <div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="d5e15"></a>Chapter&nbsp;1.&nbsp;About project</h1></div></div></div>
+  
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e17"></a>What is it?</h2></div></div></div>
+    
+
+    <p><span class="productname">Git as Subversion</span> (<a class="ulink" href="https://github.com/bozaro/git-as-svn" target="_top">https://github.com/bozaro/git-as-svn</a>) &#8212; Subversion-server implementation (svn protocol) for Git-repositories.</p>
+
+    <p>This project allows to work with Git-repository using Subversion console client, TortoiseSVN, SvnKit and other similar tools.</p>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e23"></a>What is project goal?</h2></div></div></div>
+    
+
+    <p>The project is designed to allow you to work with the same repository as Git, Subversion and style.</p>
+
+    <div class="glosslist"><dl><dt><span class="glossterm">Git style</span></dt><dd class="glossdef"><p>The basic idea is that the developer works in the local branch. His changes do not affect the work of other developers, but nonetheless they can be tested on CI farm, review by another developer and etc.</p><p>This allows each developer to work independently, as best he can. He can change and saving intermediate versions of documents, taking full advantage of the version control system (including access to the change history) even without network connection to the server.</p><p>Unfortunately, this approach does not work with not mergeable documents (for example, binary files).</p></dd><dt><span class="glossterm">Subversion style</span></dt><dd class="glossdef"><p>The use of a centralized version control system is more convenient in the case of documents do not support the merge (for example, with binary files) due to the presence of the locking mechanism and a simpler and shorter publication cycle changes.</p></dd></dl></div>
+
+    <p>The need to combine Git and Subversion style work with one repository arises from the fact that different employees in the same project are working from fundamentally different data. If you overdo, you Git programmers, and artists like Subversion.</p>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e38"></a>How does it work?</h2></div></div></div>
+    
+
+    <div class="mediaobject"><img src="images/git-as-svn.png"></div>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e43"></a>Where is the Subversion data stored?</h3></div></div></div>
+      
+
+      <p>To represent Subversion repository need to store information about how Subversion-revision number corresponds to which Git-commit. We can't compute this information every time on startup, because first <span class="command"><strong>git push --force</strong></span> change revision order. This information stored persistent in git reference <code class="filename">refs/git-as-svn/*</code>. In particular because it does not require a separate backup Subversion data. Because of this separate backup Subversion data is not necessary.</p>
+
+      <p>Also part of the data necessary for the Subversion repository, is very expensive to get based on Git repository.</p>
+
+      <p>For example:</p>
+
+      <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <p>the revision number with the previous change file;</p>
+        </li><li class="listitem">
+          <p>information about where the file was copied;</p>
+        </li><li class="listitem">
+          <p>MD5 file hash.</p>
+        </li></ul></div>
+
+      <p>In order not to find out their every startup, the data is cached in files. The loss of the cache is not critical for the operation and backup does not make sense.</p>
+
+      <p>File locking information currently stored in the cache file.</p>
+    </div>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e59"></a>How does commit works?</h3></div></div></div>
+      
+
+      <p>One of the most important parts of the system &#8212; to save the changes.</p>
+
+      <p>In general, the following algorithm:</p>
+
+      <div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+          <p>At the moment the command <span class="command"><strong>svn commit</strong></span> client sends to the server of your changes. The server remembers them. At this point comes the first check the relevance of customer data.</p>
+        </li><li class="listitem">
+          <p>The server takes the branch HEAD and begins to create new commit on the basis of client received delta. At this moment there is yet another check of the relevance of customer data.</p>
+        </li><li class="listitem">
+          <p>Validating svn properties for changed data.</p>
+        </li><li class="listitem">
+          <p>The server tries to push the new commit in the current branch of the same repository via console Git client. Next, the result of a push:</p>
+
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              <p>if commits pushed successfully &#8212; loading the latest changes from git commits and rejoice;</p>
+            </li><li class="listitem">
+              <p>if push is not fast forward &#8212; load the latest changes from git commits and go to step 2;</p>
+            </li><li class="listitem">
+              <p>if push declined by hooks &#8212; inform the client;</p>
+            </li><li class="listitem">
+              <p>on another error &#8212; inform the client;</p>
+            </li></ul></div>
+        </li></ol></div>
+
+      <p>Thus, through the use console Git client for push, we avoid the race condition pouring directly change Git repository, and get the native hooks as a nice bonus.</p>
+    </div>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e83"></a>Unlike other solutions</h3></div></div></div>
+      
+
+      <p>The problem of combining Git and Subversion work style with a version control system can be solved in different ways.</p>
+
+      <div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="d5e86"></a>GitHub Subversion support</h4></div></div></div>
+        
+
+        <div class="mediaobject"><img src="images/github.png"></div>
+
+        <p>This is probably the closest analogue.</p>
+
+        <p>The main problem of this implementation is inseparable from GitHub. Also, all of a sudden, this implementation does not support Git LFS.</p>
+
+        <p>In the case of GitHub it is also not clear where the stored mapping between Subversion-revision and Git-commit. This can be a problem when restoring repositories after emergency situations.</p>
+      </div>
+
+      <div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="d5e94"></a>SubGit</h4></div></div></div>
+        
+
+        <div class="mediaobject"><img src="images/subgit.png"></div>
+
+        <p>Web site: <a class="ulink" href="http://www.subgit.com/" target="_top">http://www.subgit.com/</a></p>
+
+        <p>Quite an interesting implementation which supports master-master replication with Git and Subversion repositories. Thereby providing synchronization of repositories is not clear.</p>
+      </div>
+
+      <div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="d5e102"></a>Subversion repository and git svn</h4></div></div></div>
+        
+
+        <div class="mediaobject"><img src="images/git-svn.png"></div>
+
+        <p>This method allows you to use Git with Subversion repository, but using a shared Git repository between multiple developers very difficult.</p>
+
+        <p>At the same time, the developer has to use a specific command-line tool for working with the repository.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e109"></a>Features</h2></div></div></div>
+    
+
+    <p>This implementation allows the majority of Subversion-users to work without thinking about what they actually use Git-repository.</p>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e112"></a>What is already there?</h3></div></div></div>
+      
+
+      <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <p>You can use at least the following clients:</p>
+
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+              <p>Subversion console client;</p>
+            </li><li class="listitem">
+              <p>TortoiseSVN;</p>
+            </li><li class="listitem">
+              <p>SvnKit.</p>
+            </li></ul></div>
+        </li><li class="listitem">
+          <p>Supported subversion operations:</p>
+
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+              <p>svn checkout, update, switch, diff</p>
+            </li><li class="listitem">
+              <p>svn commit</p>
+            </li><li class="listitem">
+              <p>svn copy, move<a href="#ftn.d5e133" class="footnote" name="d5e133"><sup class="footnote">[1]</sup></a></p>
+            </li><li class="listitem">
+              <p>svn cat, ls</p>
+            </li><li class="listitem">
+              <p>svn lock, unlock</p>
+            </li><li class="listitem">
+              <p>svn replay (svnsync)</p>
+            </li></ul></div>
+        </li><li class="listitem">
+          <p>Git LFS support;</p>
+        </li><li class="listitem">
+          <p>Git submodules supported;<a href="#ftn.d5e146" class="footnote" name="d5e146"><sup class="footnote">[2]</sup></a></p>
+        </li><li class="listitem">
+          <p>LDAP authorization;</p>
+        </li><li class="listitem">
+          <p>GitLab integration.</p>
+        </li></ul></div>
+    </div>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e152"></a>What is lacking?</h3></div></div></div>
+      
+
+      <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <p>Large gaps in the documents;</p>
+        </li><li class="listitem">
+          <p>You can only access one branch from Subversion.</p>
+        </li></ul></div>
+    </div>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e159"></a>Technical limitations</h3></div></div></div>
+      
+
+      <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <p>It is impossible to change svn properties by Subversion client;</p>
+        </li><li class="listitem">
+          <p>Empty directories is not allowed.</p>
+        </li></ul></div>
+    </div>
+  </div>
+<div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.d5e133" class="footnote">
+                  <p><a href="#d5e133" class="para"><sup class="para">[1] </sup></a>Operations are supported, but the data about the source of a copy is not saved.</p>
+
+                  <p>Information about the source copy is calculated on Git-repository commits.</p>
+                </div><div id="ftn.d5e146" class="footnote">
+              <p><a href="#d5e146" class="para"><sup class="para">[2] </sup></a>Git submodule data available in read only mode.</p>
+            </div></div></div>
+
+  <div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="d5e166"></a>Chapter&nbsp;2.&nbsp;Prerequisites</h1></div></div></div>
+  
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e168"></a>Recommendations for Subversion-client</h2></div></div></div>
+    
+
+    <p>For automatic Subversion properties set to added files and directories used the inherited properties feature.</p>
+
+    <p>This feature is supported since <span class="productname">Subversion 1.8</span>.</p>
+
+    <p>If you are using <span class="productname">TortoiseSVN</span> and <code class="varname">bugtraq:*</code> properties, then you need to use <span class="productname">TortoiseSVN 1.9</span> or later.</p>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e177"></a>Recommendations for Git-client</h2></div></div></div>
+    
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e179"></a>LFS for Git users using SSH protocol</h3></div></div></div>
+      
+
+      <p>Git-client to obtain LFS authentication data by executing on server via SSH <code class="filename">git-lfs-authenticate</code> command.</p>
+
+      <p>This request can be run very often. The establish SSH connection spent a lot of time (about 1 second).</p>
+
+      <p>To reduce SSH connection establish time, you can enable re-use of SSH connections.</p>
+
+      <p>You cab enable SSH session reuse on Linux by command:</p>
+
+      <pre class="programlisting"><span class="hl-comment">#!/bin/sh</span>
+<span class="hl-keyword">echo</span> <span class="hl-string">"Host *
+</span>     ControlMaster auto
+     ControlPath ~/.ssh/controlmasters/%r@%h:%p
+     ControlPersist 10m
+<span class="hl-string">" &gt; ~/.ssh/config
+</span>mkdir ~/.ssh/controlmasters
+chmod <span class="hl-number">700</span> ~/.ssh/controlmasters</pre>
+    </div>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e187"></a>LFS for Git users using HTTP protocol</h3></div></div></div>
+      
+
+      <p>Git client can ask login and password for LFS storage for each file.</p>
+
+      <p>To avoid this, it is necessary to enable Git password  caching.</p>
+
+      <p>You can enable password cache by command:</p>
+
+      <pre class="programlisting">git config --global credential.helper cache</pre>
+
+      <p>By default passwords are cached for 15 minutes.</p>
+
+      <p>You can change cache lifetime by command:</p>
+
+      <pre class="programlisting">git config --global credential.helper <span class="hl-string">'cache --timeout=3600'</span></pre>
+
+      <p>&#1041;&#1086;&#1083;&#1077;&#1077; &#1087;&#1086;&#1076;&#1088;&#1086;&#1073;&#1085;&#1072;&#1103; &#1080;&#1085;&#1092;&#1086;&#1088;&#1084;&#1072;&#1094;&#1080;&#1103; &#1076;&#1086;&#1089;&#1090;&#1091;&#1087;&#1085;&#1072; &#1087;&#1086; &#1072;&#1076;&#1088;&#1077;&#1089;&#1091;: <a class="ulink" href="https://help.github.com/articles/caching-your-github-password-in-git/" target="_top">https://help.github.com/articles/caching-your-github-password-in-git/</a></p>
+    </div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e198"></a>Recommendations for Git-repositories</h2></div></div></div>
+    
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e200"></a>File .gitattributes</h3></div></div></div>
+      
+
+      <p>By default Git using native line ending for text files.</p>
+
+      <p>To keep text files original content by default you need add to begin of file <code class="filename">.gitattributes</code> line:</p>
+
+      <pre class="programlisting">*   -text</pre>
+    </div>
+  </div>
+</div>
+
+  <div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="d5e206"></a>Chapter&nbsp;3.&nbsp;Installation</h1></div></div></div>
+  
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e208"></a>Quick start</h2></div></div></div>
+    
+
+    <p>To try Git as Subversion you need:</p>
+
+    <div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+        <p>Install Java 8 or later;</p>
+      </li><li class="listitem">
+        <p>Download archive from site <a class="ulink" href="https://github.com/bozaro/git-as-svn/releases/latest" target="_top">https://github.com/bozaro/git-as-svn/releases/latest</a>;</p>
+      </li><li class="listitem">
+        <p>After unpacking the archive change working path to the uncompressed directory and run the command:</p>
+
+        <pre class="programlisting">bin/git-as-svn --config doc/config-local.example --show-config</pre>
+      </li></ol></div>
+
+    <p>This will start Git as Subversion server with following configuration:</p>
+
+    <div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+        <p>The server is accessible via svn-protocol on port 3690.</p>
+
+        <p>You can check server with command like:</p>
+
+        <pre class="programlisting">svn ls svn://localhost/example</pre>
+      </li><li class="listitem">
+        <p>To access the server, you can use the user:</p>
+
+        <p>Login: test</p>
+
+        <p>Password: test</p>
+      </li><li class="listitem">
+        <p>Cache and repository will be created in <code class="filename">build</code> directory:</p>
+
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            <p><code class="filename">example.git</code> &#8212; repository directory, accessible via svn-protocol;</p>
+          </li><li class="listitem">
+            <p><code class="filename">git-as-svn.mapdb*</code> &#8212; cache files for expensive computed data.</p>
+          </li></ul></div>
+      </li></ol></div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e240"></a>Installation on Debian/Ubuntu</h2></div></div></div>
+    
+
+    <p>You can install Git as Subversion repository on Debian/Ubuntu using the commands:</p>
+
+    <pre class="programlisting"><span class="hl-comment">#!/bin/bash</span>
+<span class="hl-comment"># Add bintray GPG key</span>
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:<span class="hl-number">80</span> --recv-keys 379CE192D401AB6<span class="hl-number">1</span>
+<span class="hl-comment"># Add package source</span>
+<span class="hl-keyword">echo</span> <span class="hl-string">"deb https://dl.bintray.com/bozaro/git-as-svn debian main"</span> | sudo tee /etc/apt/sources.list.d/git-as-svn.list
+<span class="hl-comment"># Install package</span>
+sudo apt-get update
+sudo apt-get install git-as-svn
+sudo apt-get install git-as-svn-lfs</pre>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e244"></a>Package git-as-svn</h3></div></div></div>
+      
+
+      <p>This package contains the Git as Subversion.</p>
+
+      <p>After you install Git as Subversion is run in daemon mode and is available on the svn-protocol on port 3690. The daemon runs as <code class="varname">git</code> user.</p>
+
+      <p>To access the server, you can use the user:</p>
+
+      <p>Login: test</p>
+
+      <p>Password: test</p>
+
+      <p>You check configuration with command like:</p>
+
+      <pre class="programlisting">svn ls --username <span class="hl-keyword">test</span> --password <span class="hl-keyword">test</span> svn://localhost/example/</pre>
+
+      <div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="d5e254"></a>Used directories</h4></div></div></div>
+        
+
+        <p>This package by default is configured to use the following directories:</p>
+
+        <div class="variablelist"><dl class="variablelist"><dt><span class="term">/etc/git-as-svn</span></dt><dd>
+              <p>This directory contains configuration files.</p>
+            </dd><dt><span class="term">/usr/share/doc/git-as-svn</span></dt><dd>
+              <p>This directory contains this documentation to the installed version.</p>
+            </dd><dt><span class="term">/var/git/lfs</span></dt><dd>
+              <p>This directory contains configuration files.</p>
+
+              <p>It must be writable for the user <code class="varname">git</code>.</p>
+            </dd><dt><span class="term">/var/git/repositories</span></dt><dd>
+              <p>This directory is used by default to store the Git-repositories.</p>
+
+              <p>Repositories must be writable for the user <code class="varname">git</code>.</p>
+            </dd><dt><span class="term">/var/log/git-as-svn</span></dt><dd>
+              <p>This directory is used to record log files.</p>
+
+              <p>It must be writable for the user <code class="varname">git</code>.</p>
+
+              <p>Log rotation configuration can be changed by <code class="filename">/etc/git-as-svn/log4j2.xml</code> file.</p>
+            </dd><dt><span class="term">/var/cache/git-as-svn</span></dt><dd>
+              <p>This directory is used to store the Git as Subversion cache.</p>
+
+              <p>It must be writable for the user <code class="varname">git</code>.</p>
+
+              <p>The loss of the contents of this directory is not critical for operation and does not entail the loss of user data.</p>
+            </dd></dl></div>
+      </div>
+    </div>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="git-lfs-authenticate"></a>Package git-as-svn-lfs</h3></div></div></div>
+      
+
+      <p>This package contains the <code class="filename">git-lfs-authenticate</code> script.</p>
+
+      <p>Script <code class="filename">git-lfs-authenticate</code> is used for provide authentication data for HTTP access to Git LFS server for Git-users working with Git repository by SSH (<a class="ulink" href="https://github.com/github/git-lfs/blob/master/docs/api/README.md" target="_top">https://github.com/github/git-lfs/blob/master/docs/api/README.md</a>).</p>
+
+      <p>This script communicates through a Unix Domain Socket with Git as Subversion.</p>
+
+      <p>It send to Git as Subverison user name (<code class="varname">mode</code> = <code class="constant">username</code>) or user identifier (<code class="varname">mode</code> = <code class="constant">external</code>) taken from environment variable. Environment variable name is defined in configuration file via <code class="varname">variable</code> parameter (default value: <code class="constant">GL_ID</code>).</p>
+
+      <p>To check the settings of the script can be run locally on the server the following command:</p>
+
+      <pre class="programlisting"><span class="hl-comment">#!/bin/bash</span>
+<span class="hl-comment"># Set environment variable defined in configuration file</span>
+<span class="hl-keyword">export</span> GL_ID=key-<span class="hl-number">1</span>
+<span class="hl-comment"># Check access to repository</span>
+sudo su git -c <span class="hl-string">"git-lfs-authenticate example download"</span></pre>
+
+      <p>Or on the client the following command:</p>
+
+      <pre class="programlisting"><span class="hl-comment">#!/bin/bash</span>
+ssh git@remote -C <span class="hl-string">"git-lfs-authenticate example download"</span></pre>
+
+      <p>The output should look something like this:</p>
+
+      <pre class="programlisting"><span class="hl-keyword">{</span>
+  <span class="hl-string">"href"</span>: <span class="hl-string">"https://api.github.com/lfs/bozaro/git-as-svn"</span><span class="hl-keyword">,</span>
+  <span class="hl-string">"header"</span>: <span class="hl-keyword">{</span>
+    <span class="hl-string">"Authorization"</span>: <span class="hl-string">"Bearer SOME-SECRET-TOKEN"</span>
+  <span class="hl-keyword">},</span>
+  <span class="hl-string">"expires_at"</span>: <span class="hl-string">"2016-02-19T18:56:59Z"</span>
+<span class="hl-keyword">}</span></pre>
+    </div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e314"></a>Build from source code</h2></div></div></div>
+    
+
+    <p>The project was originally designed for assembly in Ubuntu.</p>
+
+    <p>To build from the source code you need to install locally:</p>
+
+    <div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+        <p>Java 8 (openjdk-8-jdk package);</p>
+      </li><li class="listitem">
+        <p>xml2po (gnome-doc-utils package) &#8212; required for build reference files;</p>
+      </li><li class="listitem">
+        <p>protoc (protobuf-compiler package) &#8212; required for build API.</p>
+      </li></ol></div>
+
+    <p>You can build distribution by command:</p>
+
+    <pre class="programlisting">./gradlew assembleDist</pre>
+
+    <p>Distribution files build in folder: <code class="filename">build/distributions</code></p>
+  </div>
+</div>
+
+  <div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="d5e329"></a>Chapter&nbsp;4.&nbsp;GitLab integration</h1></div></div></div>
+  
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e331"></a>Recommended GitLab patches</h2></div></div></div>
+    
+
+    <p>For integration with GitLab install the following patches on GitLab:</p>
+
+    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p><a class="ulink" href="https://github.com/gitlabhq/gitlab-shell/pull/230" target="_top">#230 (gitlab-shell)</a><span class="phrase">: Add
+        git-lfs-authenticate to server white list (merged to
+        7.14.1);</span></p>
+      </li><li class="listitem">
+        <p><a class="ulink" href="https://github.com/gitlabhq/gitlab-shell/pull/237" target="_top">#237 (gitlab-shell)</a><span class="phrase">:
+        Execute git-lfs-authenticate command with original arguments (merged
+        to 8.2.0);</span></p>
+      </li><li class="listitem">
+        <p><a class="ulink" href="https://github.com/gitlabhq/gitlabhq/pull/9591" target="_top">#9591 (gitlabhq)</a><span class="phrase">: Add API
+        for lookup user information by SSH key ID (merged to
+        8.0.0);</span></p>
+      </li><li class="listitem">
+        <p><a class="ulink" href="https://github.com/gitlabhq/gitlabhq/pull/9728" target="_top">#9728 (gitlabhq)</a><span class="phrase">: Show
+        "Empty Repository Page" for repository without branches (merged to
+        8.2.0).</span></p>
+      </li></ul></div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e351"></a>GitLab intergration points</h2></div></div></div>
+    
+
+    <p>There are some intgeration points with GitLab:</p>
+
+    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p>The list of repositories</p>
+
+        <p>Git as a Subversion automatically retrieves the list of repositories on startup via the GitLab API.</p>
+
+        <p>Further, this list is updated by System Hook, which is registered automatically.</p>
+      </li><li class="listitem">
+        <p>Authorization and authentication of users</p>
+
+        <p>For authenticating users and repository permission control is also used GitLab API.</p>
+      </li><li class="listitem">
+        <p>Git Hooks</p>
+
+        <p>When you commit using Git as Subversion the GitLab hooks are executed. These hooks, in particular, allow to see information about new commits without delay via the GitLab WEB interface.</p>
+
+        <p>GitLab Hooks require GitLab user ID information (GL_ID environment variable) received at user authorization.</p>
+
+        <div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Important"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="images/important.svg"></td><th align="left">Important</th></tr><tr><td align="left" valign="top">
+          <p>Because of this, in the case of integration with GitLab user authentication must be via GitLab.</p>
+        </td></tr></table></div>
+      </li><li class="listitem">
+        <p>Git LFS</p>
+
+        <p>In the case of GitLFS need to specify the path to GitLab LFS storage.</p>
+
+        <p>GitLab from version 8.2 uses single LFS-files storage shared between all repositories. Files are stored in a separate directory as raw data.</p>
+
+        <p>Integration with LFS repository GitLab occurs at the file level. GitLab API is not used.</p>
+      </li><li class="listitem">
+        <p>Git LFS authorization for SSH users</p>
+
+        <p>Unfortunately, GitLab does't provide the git-lfs-authenticate script, which is responsible for SSO authorization SSH-user Git on the server LFS. To configure this script, see <a class="xref" href="#git-lfs-authenticate" title="Package git-as-svn-lfs">the section called &#8220;Package git-as-svn-lfs&#8221;</a>.</p>
+      </li></ul></div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e377"></a>Adding a SVN-link to GitLab interface</h2></div></div></div>
+    
+
+    <p>To add a SVN-link to GitLab interface need to take latest commit of branch <a class="ulink" href="https://github.com/bozaro/gitlabhq/commits/svn_url" target="_top">https://github.com/bozaro/gitlabhq/commits/svn_url</a>.</p>
+
+    <div class="screenshot">
+      <p class="title"><b>Example of SVN-link in GitLab interface</b></p>
+
+      <div class="mediaobject"><img src="images/gitlab_svn_url.png"></div>
+    </div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e388"></a>Configuration file example</h2></div></div></div>
+    
+
+    <pre class="programlisting"><span class="hl-attribute">&nbsp;&nbsp;1 !config</span>:
+&nbsp;&nbsp;2 <span class="hl-attribute">realm</span>: Example realm
+&nbsp;&nbsp;3 <span class="hl-attribute">compressionEnabled</span>: <span class="hl-keyword">true</span>
+&nbsp;&nbsp;4 <span class="hl-attribute">parallelIndexing</span>: <span class="hl-keyword">true</span>
+&nbsp;&nbsp;5 
+&nbsp;&nbsp;6 <span class="hl-comment"># Use GitLab repositories</span>
+&nbsp;&nbsp;7 <span class="hl-attribute">repositoryMapping</span>: !gitlabMapping
+&nbsp;&nbsp;8 <span class="hl-attribute">  path</span>: /var/opt/gitlab/git-data/repositories/
+&nbsp;&nbsp;9   <span class="hl-comment"># Uncomment following to only handle repositories with specified tags (add them to repositories via Settings -&gt; General -&gt; Tags in GitLab)</span>
+&nbsp;10 <span class="hl-attribute">  # repositoryTags</span>:
+&nbsp;11   <span class="hl-comment">#   - git-as-svn</span>
+&nbsp;12 <span class="hl-attribute">  template</span>:
+&nbsp;13 <span class="hl-attribute">    branch</span>: master
+&nbsp;14 <span class="hl-attribute">    renameDetection</span>: <span class="hl-keyword">true</span>
+&nbsp;15 
+&nbsp;16 <span class="hl-comment"># Use GitLab user database</span>
+&nbsp;17 <span class="hl-attribute">userDB</span>: !gitlabUsers <span class="hl-keyword">{}</span>
+&nbsp;18 
+&nbsp;19 <span class="hl-attribute">shared</span>:
+&nbsp;20   <span class="hl-comment"># Web server settings</span>
+&nbsp;21 <span class="hl-attribute">  # Used for</span>:
+&nbsp;22   <span class="hl-comment">#  * detecticting add/remove repositories via GitLab System Hook</span>
+&nbsp;23   <span class="hl-comment">#  * git-lfs-authenticate script (optionaly)</span>
+&nbsp;24   - !web
+&nbsp;25 <span class="hl-attribute">    # baseUrl</span>: http://git-as-svn.local/
+&nbsp;26 <span class="hl-attribute">    listen</span>:
+&nbsp;27     - !http
+&nbsp;28 <span class="hl-attribute">      host</span>: localhost
+&nbsp;29 <span class="hl-attribute">      port</span>: <span class="hl-number">8123</span>
+&nbsp;30       <span class="hl-comment"># Use X-Forwarded-* headers</span>
+&nbsp;31 <span class="hl-attribute">      forwarded</span>: <span class="hl-keyword">true</span>
+&nbsp;32   <span class="hl-comment"># GitLab LFS Client</span>
+&nbsp;33   - !gitlabLfs <span class="hl-keyword">{}</span>
+&nbsp;34   <span class="hl-comment"># GitLab server</span>
+&nbsp;35   - !gitlab
+&nbsp;36 <span class="hl-attribute">    url</span>: http://localhost:<span class="hl-number">3000</span>/
+&nbsp;37 <span class="hl-attribute">    hookUrl</span>: http://localhost:<span class="hl-number">8123</span>/
+&nbsp;38 <span class="hl-attribute">    token</span>: qytzQc6uYiQfsoqJxGuG
+&nbsp;39 </pre>
+  </div>
+</div>
+
+  <div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="ch_props"></a>Chapter&nbsp;5.&nbsp;SVN Properties</h1></div></div></div>
+  
+
+  <p>The main <code class="code">svn properties</code> trouble that they should be maintained in the synchronous state between Git and Subversion.</p>
+
+  <p>Because of this arbitrary <code class="code">svn properties</code> is not supported. To value <code class="code">svn propertiescode&gt; correspond Git-view, they are generated on the fly based on the repository content.</code></p>
+
+  <p>Wherein:</p>
+
+  <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+      <p>the commit verifies that <code class="code">svn properties</code> file or directory exactly match what should be according to the data repository;</p>
+    </li><li class="listitem">
+      <p>Subversion does not tool allows you to change most of the properties (exception: <code class="code">svn:executable</code>, <code class="code">svn:special</code>);</p>
+    </li><li class="listitem">
+      <p>if a file affects the <code class="code">svn properties</code> other files after changing it <code class="code">svn properties</code> of the files in the same change.</p>
+    </li></ul></div>
+
+  <div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Important"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="images/important.svg"></td><th align="left">Important</th></tr><tr><td align="left" valign="top">
+    <p>For user convenience Git as Subversion is actively using the inherited properties.</p>
+
+    <p>This feature require to use the client Subversion 1.8 or later.</p>
+
+    <p>Otherwise there will be problems with the svn properties for new files and directories.</p>
+  </td></tr></table></div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e415"></a>File .gitignores</h2></div></div></div>
+    
+
+    <p>This file affects the property <code class="code">svn:ignore</code> and <code class="code">svn:global-ignores</code> for the directory and its subdirectories.</p>
+
+    <p>For example, a file in the directory <code class="filename">/foo</code> with the contents:</p>
+
+    <pre class="programlisting">.idea/libraries
+*.class
+*/build</pre>
+
+    <p>Mapped to properties:</p>
+
+    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p>for directory <code class="code">/foo</code>:</p>
+
+        <pre class="programlisting">svn:global-ignores: *.class</pre>
+      </li><li class="listitem">
+        <p>for directory <code class="code">/foo/*</code>:</p>
+
+        <pre class="programlisting">svn:ignore: build</pre>
+      </li><li class="listitem">
+        <p>for directory <code class="code">/foo/.idea</code>:</p>
+
+        <pre class="programlisting">svn:ignore: libraries build</pre>
+      </li></ul></div>
+
+    <div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Important"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="images/important.svg"></td><th align="left">Important</th></tr><tr><td align="left" valign="top">
+      <p>For Subversion has no way to make an exception for directories, as a result, for example, the rules of <code class="code">/foo</code> (file or directory <code class="code">foocode&gt;) and /foo/ (directory foo) in Subversion will work the same way, though to Git they have different behavior.</code></p>
+
+      <p>Terms like "all but" not supported on mapping to the <code class="code">svn:global-ignores</code> property.</p>
+    </td></tr></table></div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e443"></a>File .gitattributes</h2></div></div></div>
+    
+
+    <p>This file affects the properties of the <code class="code">svn:eol-style</code> and <code class="code">svn:mime-type</code> files from this directory and <code class="code">svn:auto-props</code> from the directory itself.</p>
+
+    <p>For example, a file with contents:</p>
+
+    <pre class="programlisting">*.txt           text eol=native
+*.xml           eol=lf
+*.bin           binary</pre>
+
+    <p>Add property to the directory <code class="code">svn:auto-props</code> with the contents:</p>
+
+    <pre class="programlisting">*.txt = svn:eol-style=native
+*.xml = svn:eol-style=LF
+*.bin = svn:mime-type=application/octet-stream</pre>
+
+    <p>And files in this directory:</p>
+
+    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p>for suffix <code class="filename">.txt</code> add property <code class="code">svn:eol-style = navtive</code></p>
+      </li><li class="listitem">
+        <p>for suffix <code class="filename">.xml</code> add property <code class="code">svn:eol-style = LF</code></p>
+      </li><li class="listitem">
+        <p>for suffix <code class="filename">.bin</code> add property <code class="code">svn:mime-type = application/octet-stream</code></p>
+      </li></ul></div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e468"></a>File .tgitconfig</h2></div></div></div>
+    
+
+    <p>This file only changes the properties of the directory in which it is located.</p>
+
+    <p>Properties are mapped one-to-one, for example, a file with the contents:</p>
+
+    <pre class="programlisting">[bugtraq]
+    url = https://github.com/bozaro/git-as-svn/issues/%BUGID%
+    logregex = #(\d+)
+    warnifnoissue = false</pre>
+
+    <p>It will be converted to properties:</p>
+
+    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p><code class="code">bugtraq:url =
+        https://github.com/bozaro/git-as-svn/issues/%BUGID%</code></p>
+      </li><li class="listitem">
+        <p><code class="code">bugtraq:logregex = #(\d+)</code></p>
+      </li><li class="listitem">
+        <p><code class="code">bugtraq:warnifnoissue = false</code></p>
+      </li></ul></div>
+
+    <div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Important"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="images/important.svg"></td><th align="left">Important</th></tr><tr><td align="left" valign="top">
+      <p>If you use bugtraq svn properties, it is highly recommended that you use TortoiseSVN 1.9 or later.</p>
+
+      <p>Otherwise TortoiseSVN will attempt to set these parameters for all newly created directories instead of use inherited properties.</p>
+    </td></tr></table></div>
+  </div>
+</div>
+
+  <div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="ch_ssh"></a>Chapter&nbsp;6.&nbsp;SVN+SSH</h1></div></div></div>
+    
+    <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e489"></a>Rationale</h2></div></div></div>
+        
+        <p>The SVN protocol is totally unencrypted, and due to the way
+        git-as-svn has to proxy authentication through to git servers,
+        almost all authentication happens in plaintext.</p>
+        <p>Clearly this is undesirable, not only is potentially private
+        code exposed over the svn protocol, but so are passwords and
+        usernames.</p>
+        <p>Traditionally SVN has two ways of preventing this:</p>
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <p>Use HTTPS</p>
+            </li><li class="listitem">
+                <p>Use svn+ssh</p>
+            </li></ul></div>
+        <p>The HTTP protocol is substantially different from the SVN
+        protocol and is currently unimplemented in git-as-svn</p>
+        <p>Thus leaving the svn+ssh mechanism.</p>
+    </div>
+    <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e501"></a>How does SVN+SSH work?</h2></div></div></div>
+        
+        <p>Normally when a client calls
+        <code class="code">svn &lt;command&gt; svn://host/path</code>, for an appropriate
+        <code class="code">&lt;command&gt;</code>, the subversion client will open a 
+        connection to the <code class="code">host</code> server on port 3690. After an
+        initial handshake as per the SVN protocol the server will ask the
+        client to authenticate.</p>
+        <p>If possible the client will attempt to perform its actions
+        anonymously, and if necessary the server will then ask for
+        reauthentication.</p>
+        <p>If a client calls
+        <code class="code">svn &lt;command&gt; svn+ssh//username@host/path</code>,
+        the subversion client will internally ask ssh to open connection
+        using something equivalent to:
+        <code class="code">ssh username@host "svnserve -t"</code>.</p>
+        <p>If ssh succesfully connects, the SSH will run
+        <code class="code">svnserve -t</code> on the host, which will then proceed with
+        the SVN protocol handshake over its <code class="code">stdin</code> and
+        <code class="code">stdout</code>, and the client will use the <code class="code">stdin</code>
+        and <code class="code">stdout</code> of the ssh connection.</p>
+        <p>When the server asks the client to authenticate, the server
+        will offer the <code class="code">EXTERNAL</code> authentication mechanism.
+        (Possibly with the <code class="code">ANONYMOUS</code> mechanism.)</p>
+        <p>If the client uses <code class="code">EXTERNAL</code> mechanism, the
+        server sets the user to be either the currently logged in user
+        from the ssh, (or an optional tunnel-user parameter.)</p>
+        <p>Securing the <code class="code">svnserve -t</code> call and protecting
+        against semi-malicious uses of the <code class="code">--tunnel-user</code>
+        option or even the calling of other commands in cases of multiple
+        users for a single repository requires some thought.</p>
+        <p>Often this is protected through the use of a suitable
+        <code class="code">command=""</code> parameter in the
+        <code class="code">authorized_keys</code> file, coupled with other options.
+        e.g.</p>
+        <p><code class="code">command="/usr/bin/svnserve -t --tunnel-user username",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-rsa ...</code></p>
+        <p>Of note, in this example the command provided by the client
+        is ignored but it could be checked and managed as appropriately.
+        In fact these techniques are used in the
+        <code class="code">authorized_keys</code> files of most <code class="code">git</code>
+        servers.</p>
+        <p>This provides a simple first way to handle
+        <code class="code">svn+ssh</code>, if we set
+        <code class="code">command="nc localhost 3690"</code> then whenever we connect
+        by ssh we will be passed directly to the git-as-svn server. The
+        downside being that the client will be asked to
+        authenticate.</p>
+    </div>
+    <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e536"></a>A better <code class="code">git-as-svn-svnserve</code></h2></div></div></div>
+        
+        <p>Handling the <code class="code">EXTERNAL</code> authentication mechanism
+        properly without creating a new port to listen on and a new
+        adjusted SVN protocol is not possible.</p>
+        <p>However there is another way:</p>
+        <p>We can stand in the middle of the SVN protocol stream, catch
+        the authentication handshake, proxy it before stepping back and
+        letting the client and server talk to each other.</p>
+        <p>We can create a new authentication mechanism on the
+        <code class="code">git-as-svn</code> server that requires a secret token known
+        only by us, to allow us to pass in the external username (or other
+        identifier) as the user authentication using
+        <code class="code">sshKeyUsers</code> to proxy the <code class="code">UserDB</code></p>
+        <p>We can then use 
+        <code class="code">git-as-svn-svnserve-tunnel SECRET EXTERNAL_USERNAME</code> as
+        a replacement for <code class="code">svnserve -t</code> or 
+        <code class="code">nc localhost 3690</code> in the <code class="code">command=""</code>
+        option in authorized_keys.</p>
+        <p>Of course we need to keep the 
+        <code class="code">authorized_keys</code> file up-to-date</p>
+    </div>
+    <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e554"></a>Gitlab &amp; git-as-svn-svnserve</h2></div></div></div>
+        
+        <p>There are two ways that Gitlab manages ssh access.</p>
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <p>Updating the git user's <code class="code">authorized_keys</code>
+                every time a SSH key is changed.</p>
+            </li><li class="listitem">
+                <p>The use of an SSH
+                <code class="code">AuthorizedKeysCommand</code></p>
+            </li></ul></div>
+        <p>First, let's look at the <code class="code">authorized_keys</code>
+        case.</p>
+        <p>Gitlab will update the <code class="code">authorized_keys</code> file
+        over time.</p>
+        <p>If you set the option:
+        <code class="code">gitlab_shell['auth_file']</code> in the
+        <code class="code">gitlab.rb</code> configuration file to a different
+        location, you can catch changes to this file, and change the
+        <code class="code">command=""</code> option to something that will check 
+        whether we are trying to perform svn and handle it if so.</p>
+        <p>The suggested config, at least for Gitlab docker and 
+        assuming that git-as-svn has been installed in
+        <code class="code">/opt/git-as-svn</code> is:</p>
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p><code class="code">/etc/gitlab/gitlab.rb</code>:
+        </p>
+        <pre class="programlisting">
+...
+################################################################################
+## gitlab-shell
+################################################################################
+...
+# gitlab_shell['auth_file'] = "/var/opt/gitlab/.ssh/authorized_keys"
+gitlab_shell['auth_file'] = "/var/opt/gitlab/ssh-shadow/authorized_keys"
+...
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/opt/git-as-svn/config.yaml</code>:
+        </p>
+        <pre class="programlisting">
+!config:
+realm: Git-as-svn Realm
+compressionEnabled: true
+parallelIndexing: true
+
+# Use GitLab repositories
+repositoryMapping: !gitlabMapping
+  path: /var/opt/gitlab/git-data/repositories/
+  # Uncomment following to only handle repositories with specified tags (add them to repositories via Settings -&gt; General -&gt; Tags in GitLab)
+  # repositoryTags:
+  #   - git-as-svn
+  template:
+    branch: master
+    renameDetection: true
+
+# Wrap the Gitlab user database with sshKeyUsers
+userDB: 
+  !sshKeyUsers
+    userDB: !gitlabUsers {}
+    sshKeysToken: CHANGE_THIS_TO_SOMETHING_SECRET
+
+shared:
+  # Web server settings
+  # Used for:
+  #  * detecticting add/remove repositories via GitLab System Hook
+  #  * git-lfs-authenticate script (optionaly)
+  - !web
+    # baseUrl: http://git-as-svn.local/
+    listen:
+    - !http
+      host: localhost
+      port: 8123
+      # Use X-Forwarded-* headers
+      forwarded: true
+  # GitLab LFS Client
+  - !gitlabLfs {}
+  # GitLab server
+  - !gitlab
+    url: http://localhost:3000/
+    hookUrl: http://localhost:8123/
+    token: qytzQc6uYiQfsoqJxGuG
+  # Manage authorized_keys
+  - !sshKeys
+    shadowSSHDirectory: /var/opt/gitlab/ssh-shadow
+    realSSHDirectory: /var/opt/gitlab/.ssh
+    originalAppPath: /opt/gitlab/embedded/service/gitlab-shell/bin/gitlab-shell
+    svnservePath: /opt/git-as-svn/bin/git-as-svn-svnserve
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/opt/git-as-svn/bin/git-as-svn-svnserve</code>:
+        </p>
+        <pre class="programlisting">
+#!/bin/bash
+
+############################################################
+# git-as-svn-svnserve
+#
+# Shadow the default gitlab/gitea shell and allow svnserve
+############################################################
+
+SHADOW_SHELL_PATH="/opt/gitlab/embedded/service/gitlab-shell/bin/gitlab-shell"
+TUNNEL_PATH="/opt/git-as-svn/bin/git-as-svn-svnserve-tunnel"
+KEY="$1"
+REAL_SHELL_PATH="$SHADOW_SHELL_PATH"
+SECRET="CHANGE_THIS_TO_SOMETHING_SECRET"
+
+SSH_ORIGINAL_COMMANDS=($SSH_ORIGINAL_COMMAND)
+
+if [ -n "$SSH_ORIGINAL_COMMAND" ] &amp;&amp; [ "${SSH_ORIGINAL_COMMANDS[0]}" = "svnserve" ] ; then
+    ## TUNNEL TO OUR SVNSERVER WITH MAGIC AUTHENTICATION ##
+    exec "$TUNNEL_PATH" "$SECRET" "$KEY"
+else
+    exec -a "$REAL_SHELL_PATH" "$SHADOW_SHELL_PATH" "$@"
+fi
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/opt/git-as-svn/bin/git-as-svn-svnserve-tunnel</code>:</p>
+        <pre class="programlisting">
+#!/bin/bash
+
+############################################################
+# git-as-svn-svnserve-tunnel
+#
+# Use a bit of bash hackery to implement svnserve -t by
+# pushing stdin to the svn port (3690) but hijack the 
+# authentication phase to pass in the ssh key id
+############################################################
+
+SECRET="$1"
+KEY="$2"
+FAKE_AUTH="( success ( ( EXTERNAL ) 16:Git-as-svn Realm ) )"
+
+function failed {
+    echo "$0: Unable to connect to svn service! Is it running?" 1&gt;&amp;2
+    exit
+}
+trap failed err
+
+OUR_PID=$$
+function finish {
+    pkill -P $OUR_PID
+    exec 3&gt;&amp;- 3&lt;&amp;-
+}
+trap finish EXIT
+
+exec 3&lt;&gt;/dev/tcp/localhost/3690
+
+trap finish err
+
+function read_bracket {
+    BEEN_IN=false
+    NBRACK=0
+
+    while ! $BEEN_IN || [ $NBRACK != 0 ]; do
+        IFS= read -n1 -r -d '' FROM
+        case $FROM in
+            '(')
+            NBRACK=$(($NBRACK + 1))
+            BEEN_IN=true
+            ;;
+            ')')
+            NBRACK=$(($NBRACK - 1))
+            ;;
+            '')
+            break
+        esac
+        echo -ne "$FROM"
+    done
+    IFS= read -n1 -r -d '' FROM
+    echo -ne "$FROM"
+    if [ "X$FROM" = "X" ]; then
+        exec 0&lt;&amp;-
+        exit
+    fi
+}
+
+# Send server capabilities to client
+read_bracket &lt;&amp;3 &gt;&amp;1
+
+# Send client capabilities to server
+read_bracket &lt;&amp;0 &gt;&amp;3
+
+# Get the server authentication
+AUTH_LIST_FROM_SERV=$(read_bracket &lt;&amp;3)
+
+# Send the server our information
+AUTHBODY=$(echo -ne "\0$SECRET\0$KEY" | base64)
+AUTHBODY_LENGTH=${#AUTHBODY}
+echo "( KEY-AUTHENTICATOR ( $AUTHBODY_LENGTH:$AUTHBODY ) )" &gt;&amp;3
+if ! { command &gt;&amp;3; } 2&gt;/dev/null; then
+    exit
+fi
+
+# send the fake auth list to the client
+echo "$FAKE_AUTH" &gt;&amp;1
+if ! { command &gt;&amp;1; } 2&gt;/dev/null; then
+    exit
+fi
+
+# throwaway the client's response
+read_bracket &lt;&amp;0 &gt; /dev/null
+
+# THEN PRETEND THAT THE REST OF IT WENT THAT WAY
+(
+    cat &lt;&amp;3 &gt;&amp;1 &amp;
+    CAT_PID=$!
+    function on_exit {
+        kill $CAT_PID
+    }
+    trap on_exit EXIT
+    wait
+    kill $OUR_PID
+) &amp;
+
+cat &lt;&amp;0 &gt;&amp;3
+pkill -P $OUR_PID
+        </pre>
+        </li></ul></div>
+        <p>In the second case, if we proxy the
+        <code class="code">AuthorizedKeysCommand</code>, and just replace the
+        <code class="code">command=""</code> option as above then we have a working
+        solution.</p>
+        <p>We have two main options, we can keep the same user, e.g.
+        <code class="code">git</code> for both subversion and git, or we could create
+        another user.</p>
+        <p>The first option requires that we proxy the original app
+        and replace it with our own. The second is similar but we leave
+        the original response alone for git, just replacing it for svn</p>
+        <p>The first option is described below.</p>
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p><code class="code">/assets/sshd_config</code>:</p>
+        <pre class="programlisting">
+...
+# AuthorizedKeysCommand /opt/gitlab/embedded/service/gitlab-shell/bin/gitlab-shell-authorized-keys-check git %u %k
+# AuthorizedKeysCommandUser git
+AuthorizedKeysCommand /opt/git-as-svn/bin/git-as-svn-authorized-keys-command git %u %k
+AuthorizedKeysCommandUser git
+...
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/opt/git-as-svn/bin/git-as-svn-authorized-keys-command</code>:</p>
+        <pre class="programlisting">
+#!/bin/bash
+
+############################################################
+# git-as-svn-authorized-keys_command
+#
+# Shadow the default ssh AuthorizedKeysCommand and adjust its
+# output to replace the original command with our svnserve
+############################################################
+
+############################################################
+# For Gitlab Docker:
+############################################################
+ORIGINAL_AUTHORIZED_COMMAND="/opt/gitlab/embedded/service/gitlab-shell/bin/gitlab-shell-authorized-keys-check"
+ORIGINAL_APP_PATH="/opt/gitlab/embedded/service/gitlab-shell/bin/gitlab-shell"
+SVN_SERVE_PATH="/opt/git-as-svn/bin/git-as-svn-svnserve"
+
+exec -a "$ORIGINAL_AUTHORIZED_COMMAND"  "$ORIGINAL_AUTHORIZED_COMMAND" "$@" | sed -e 's|command="'"$ORIGINAL_APP_PATH"'|command="'"$SVN_SERVE_PATH"'|'
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/opt/git-as-svn/config.yaml</code>:</p>
+        <pre class="programlisting">
+!config:
+realm: Git-as-svn Realm
+compressionEnabled: true
+parallelIndexing: true
+
+# Use GitLab repositories
+repositoryMapping: !gitlabMapping
+  path: /var/opt/gitlab/git-data/repositories/
+  # Uncomment following to only handle repositories with specified tags (add them to repositories via Settings -&gt; General -&gt; Tags in GitLab)
+  # repositoryTags:
+  #   - git-as-svn
+  template:
+    branch: master
+    renameDetection: true
+
+# Wrap the Gitlab user database with sshKeyUsers
+userDB: 
+  !sshKeyUsers
+    userDB: !gitlabUsers {}
+    sshKeysToken: CHANGE_THIS_TO_SOMETHING_SECRET
+
+shared:
+  # Web server settings
+  # Used for:
+  #  * detecticting add/remove repositories via GitLab System Hook
+  #  * git-lfs-authenticate script (optionaly)
+  - !web
+    # baseUrl: http://git-as-svn.local/
+    listen:
+    - !http
+      host: localhost
+      port: 8123
+      # Use X-Forwarded-* headers
+      forwarded: true
+  # GitLab LFS Client
+  - !gitlabLfs {}
+  # GitLab server
+  - !gitlab
+    url: http://localhost:3000/
+    hookUrl: http://localhost:8123/
+    token: qytzQc6uYiQfsoqJxGuG
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/opt/git-as-svn/bin/git-as-svn-svnserve</code> and
+        <code class="code">/opt/git-as-svn/bin/git-as-svn-svnserve-tunnel</code> same
+        as above.</p>
+        </li></ul></div>
+    </div>
+    <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e615"></a>Gitea</h2></div></div></div>
+        
+        <p>There are two ways that Gitea manages ssh access.</p>
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <p>If Gitea is deferring to an external SSHD. It will 
+                update the git user's <code class="code">authorized_keys</code>
+                every time a SSH key is changed.</p>
+            </li><li class="listitem">
+                <p>If Gitea is using its own internal SSHD. It will
+                run the <code class="code">gitea serv</code> command each time.</p>
+            </li><li class="listitem">
+                <p>The use of an SSH
+                <code class="code">AuthorizedKeysCommand</code> in Gitea v1.7.0+</p>
+            </li></ul></div> 
+        <p>First, let's look at the <code class="code">authorized_keys</code>
+        case.</p>
+        <p>Gitea will update the <code class="code">authorized_keys</code> file
+        over time.</p>
+        <p>If you set the option:
+        <code class="code">SSH_ROOT_PATH</code> in the <code class="code">[server]</code> of the 
+        gitea <code class="code">app.ini</code> to a shadow location you can catch
+        changes to this file, and change the
+        <code class="code">command=""</code> option to something that will check 
+        whether we are trying to perform svn and handle it if so.</p>
+        <p>The suggested config, at least for Gitea docker, and 
+        assuming that git-as-svn has been installed in
+        <code class="code">/app/git-as-svn</code> is:</p>
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p><code class="code">/data/gitea/conf/app.ini</code>:</p>
+        <pre class="programlisting">
+...
+[server]
+...
+SSH_ROOT_PATH=/data/git/ssh-shadow
+...
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/app/git-as-svn/config.yaml</code>:</p>
+        <pre class="programlisting">
+!config:
+realm: Git-as-svn Realm
+compressionEnabled: true
+parallelIndexing: true
+
+# Use Gitea repositories
+repositoryMapping: !giteaMapping
+  path: /data/git/repositories
+  template:
+    branch: master
+    renameDetection: true
+
+# Use Gitea user database
+userDB:
+  !sshKeyUsers
+    userDB: !giteaUsers {}
+    sshKeysToken: CHANGE_THIS_TO_SOMETHING_SECRET
+
+shared:
+  # Gitea LFS server - uses the GitLab layout
+  - !localLfs
+    path: /data/git/lfs
+    saveMeta: false
+    compress: false
+    layout: GitLab
+  # Gitea server
+  - !gitea
+    url: http://localhost:3000/api/v1
+    #token: de0c16fdc2c2ec5bcb4917922900015d3bceb82b
+    token: 90c68b84fb04e364c2ea3fc42a6a2193144bc07d
+  - !giteaSSHKeys
+  # Or if using Gitea v1.7.0 just: !sshKeys
+    shadowSSHDirectory: /data/git/ssh-shadow
+    realSSHDirectory: /data/git/.ssh
+    originalAppPath: /app/gitea/gitea
+    svnservePath: /app/gitea/git-as-svn-svnserve    
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/app/git-as-svn/bin/git-as-svn-svnserve</code>:</p>
+        <pre class="programlisting">
+#!/bin/bash
+
+############################################################
+# git-as-svn-svnserve
+#
+# Shadow the default gitlab/gitea shell and allow svnserve
+############################################################
+
+SHADOW_SHELL_PATH="/app/gitea/gitea"
+TUNNEL_PATH="/app/git-as-svn/bin/git-as-svn-svnserve-tunnel"
+KEY="$2"
+SUBCOMMAND="$1"
+REAL_SHELL_PATH="$SHADOW_SHELL_PATH"
+
+if [ "$SUBCOMMAND" != "serv" ]; then
+    exec -a "$REAL_SHELL_PATH" "$SHADOW_SHELL_PATH" "$@"
+fi
+
+SECRET="CHANGE_THIS_TO_SOMETHING_SECRET"
+
+SSH_ORIGINAL_COMMANDS=($SSH_ORIGINAL_COMMAND)
+
+if [ -n "$SSH_ORIGINAL_COMMAND" ] &amp;&amp; [ "${SSH_ORIGINAL_COMMANDS[0]}" = "svnserve" ] ; then
+    ## TUNNEL TO OUR SVNSERVER WITH MAGIC AUTHENTICATION ##
+    exec "$TUNNEL_PATH" "$SECRET" "$KEY"
+else
+    exec -a "$REAL_SHELL_PATH" "$SHADOW_SHELL_PATH" "$@"
+fi
+        </pre>
+        </li><li class="listitem">
+        <p><code class="code">/app/git-as-svn/bin/git-as-svn-svnserve-tunnel</code>
+        should be the same as in the gitlab case.</p>
+        </li></ul></div>
+        <p>For the second case, we need to shadow the gitea binary</p>
+        <p>So we would need to move the original gitea from
+        <code class="code">/app/gitea/gitea</code> to <code class="code">/app/gitea/gitea.shadow</code></p>
+        <p>And either create <code class="code">/app/gitea/gitea</code> as a symbolic
+        link or just copy the below
+        <code class="code">/app/git-as-svn/bin/git-as-svn-svnserve</code> as it.
+        </p>
+        <p><code class="code">/app/git-as-svn/bin/git-as-svn-svnserve</code>:
+        </p><pre class="programlisting">
+#!/bin/bash
+
+############################################################
+# git-as-svn-svnserve
+#
+# Shadow the default gitlab/gitea shell and allow svnserve
+############################################################
+
+SHADOW_SHELL_PATH="/app/gitea/gitea.shadow"
+TUNNEL_PATH="/app/git-as-svn/bin/git-as-svn-svnserve-tunnel"
+KEY="$2"
+SUBCOMMAND="$1"
+REAL_SHELL_PATH="/app/gitea/gitea"
+
+if [ "$SUBCOMMAND" != "serv" ]; then
+    exec -a "$REAL_SHELL_PATH" "$SHADOW_SHELL_PATH" "$@"
+fi
+
+SECRET="CHANGE_THIS_TO_SOMETHING_SECRET"
+
+SSH_ORIGINAL_COMMANDS=($SSH_ORIGINAL_COMMAND)
+
+if [ -n "$SSH_ORIGINAL_COMMAND" ] &amp;&amp; [ "${SSH_ORIGINAL_COMMANDS[0]}" = "svnserve" ] ; then
+    ## TUNNEL TO OUR SVNSERVER WITH MAGIC AUTHENTICATION ##
+    exec "$TUNNEL_PATH" "$SECRET" "$KEY"
+else
+    exec -a "$REAL_SHELL_PATH" "$SHADOW_SHELL_PATH" "$@"
+fi
+        </pre><p>
+        </p>
+        <p><code class="code">/app/git-as-svn/bin/git-as-svn-svnserve-tunnel</code>
+        should be the same as in the gitlab case.</p>
+        <p>Managing the <code class="code">AuthorizedKeysCommand</code>
+        is similar to that in the Gitlab case.</p>
+    </div>
+</div>
+</div></body></html>

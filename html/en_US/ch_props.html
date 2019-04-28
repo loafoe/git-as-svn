@@ -1,0 +1,119 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Chapter&nbsp;5.&nbsp;SVN Properties</title><link rel="stylesheet" type="text/css" href="css/manual-multipage.css"><meta name="generator" content="DocBook XSL Stylesheets V1.78.1"><link rel="home" href="index.html" title="Git as Subversion"><link rel="up" href="index.html" title="Git as Subversion"><link rel="prev" href="ch04.html" title="Chapter&nbsp;4.&nbsp;GitLab integration"><link rel="next" href="ch_ssh.html" title="Chapter&nbsp;6.&nbsp;SVN+SSH"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter&nbsp;5.&nbsp;SVN Properties</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04.html">Prev</a>&nbsp;</td><th width="60%" align="center">&nbsp;</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch_ssh.html">Next</a></td></tr></table><hr></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="ch_props"></a>Chapter&nbsp;5.&nbsp;SVN Properties</h1></div></div></div>
+  
+
+  <p>The main <code class="code">svn properties</code> trouble that they should be maintained in the synchronous state between Git and Subversion.</p>
+
+  <p>Because of this arbitrary <code class="code">svn properties</code> is not supported. To value <code class="code">svn propertiescode&gt; correspond Git-view, they are generated on the fly based on the repository content.</code></p>
+
+  <p>Wherein:</p>
+
+  <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+      <p>the commit verifies that <code class="code">svn properties</code> file or directory exactly match what should be according to the data repository;</p>
+    </li><li class="listitem">
+      <p>Subversion does not tool allows you to change most of the properties (exception: <code class="code">svn:executable</code>, <code class="code">svn:special</code>);</p>
+    </li><li class="listitem">
+      <p>if a file affects the <code class="code">svn properties</code> other files after changing it <code class="code">svn properties</code> of the files in the same change.</p>
+    </li></ul></div>
+
+  <div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Important"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="images/important.svg"></td><th align="left">Important</th></tr><tr><td align="left" valign="top">
+    <p>For user convenience Git as Subversion is actively using the inherited properties.</p>
+
+    <p>This feature require to use the client Subversion 1.8 or later.</p>
+
+    <p>Otherwise there will be problems with the svn properties for new files and directories.</p>
+  </td></tr></table></div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e415"></a>File .gitignores</h2></div></div></div>
+    
+
+    <p>This file affects the property <code class="code">svn:ignore</code> and <code class="code">svn:global-ignores</code> for the directory and its subdirectories.</p>
+
+    <p>For example, a file in the directory <code class="filename">/foo</code> with the contents:</p>
+
+    <pre class="programlisting">.idea/libraries
+*.class
+*/build</pre>
+
+    <p>Mapped to properties:</p>
+
+    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p>for directory <code class="code">/foo</code>:</p>
+
+        <pre class="programlisting">svn:global-ignores: *.class</pre>
+      </li><li class="listitem">
+        <p>for directory <code class="code">/foo/*</code>:</p>
+
+        <pre class="programlisting">svn:ignore: build</pre>
+      </li><li class="listitem">
+        <p>for directory <code class="code">/foo/.idea</code>:</p>
+
+        <pre class="programlisting">svn:ignore: libraries build</pre>
+      </li></ul></div>
+
+    <div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Important"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="images/important.svg"></td><th align="left">Important</th></tr><tr><td align="left" valign="top">
+      <p>For Subversion has no way to make an exception for directories, as a result, for example, the rules of <code class="code">/foo</code> (file or directory <code class="code">foocode&gt;) and /foo/ (directory foo) in Subversion will work the same way, though to Git they have different behavior.</code></p>
+
+      <p>Terms like "all but" not supported on mapping to the <code class="code">svn:global-ignores</code> property.</p>
+    </td></tr></table></div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e443"></a>File .gitattributes</h2></div></div></div>
+    
+
+    <p>This file affects the properties of the <code class="code">svn:eol-style</code> and <code class="code">svn:mime-type</code> files from this directory and <code class="code">svn:auto-props</code> from the directory itself.</p>
+
+    <p>For example, a file with contents:</p>
+
+    <pre class="programlisting">*.txt           text eol=native
+*.xml           eol=lf
+*.bin           binary</pre>
+
+    <p>Add property to the directory <code class="code">svn:auto-props</code> with the contents:</p>
+
+    <pre class="programlisting">*.txt = svn:eol-style=native
+*.xml = svn:eol-style=LF
+*.bin = svn:mime-type=application/octet-stream</pre>
+
+    <p>And files in this directory:</p>
+
+    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p>for suffix <code class="filename">.txt</code> add property <code class="code">svn:eol-style = navtive</code></p>
+      </li><li class="listitem">
+        <p>for suffix <code class="filename">.xml</code> add property <code class="code">svn:eol-style = LF</code></p>
+      </li><li class="listitem">
+        <p>for suffix <code class="filename">.bin</code> add property <code class="code">svn:mime-type = application/octet-stream</code></p>
+      </li></ul></div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e468"></a>File .tgitconfig</h2></div></div></div>
+    
+
+    <p>This file only changes the properties of the directory in which it is located.</p>
+
+    <p>Properties are mapped one-to-one, for example, a file with the contents:</p>
+
+    <pre class="programlisting">[bugtraq]
+    url = https://github.com/bozaro/git-as-svn/issues/%BUGID%
+    logregex = #(\d+)
+    warnifnoissue = false</pre>
+
+    <p>It will be converted to properties:</p>
+
+    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+        <p><code class="code">bugtraq:url =
+        https://github.com/bozaro/git-as-svn/issues/%BUGID%</code></p>
+      </li><li class="listitem">
+        <p><code class="code">bugtraq:logregex = #(\d+)</code></p>
+      </li><li class="listitem">
+        <p><code class="code">bugtraq:warnifnoissue = false</code></p>
+      </li></ul></div>
+
+    <div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Important"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="images/important.svg"></td><th align="left">Important</th></tr><tr><td align="left" valign="top">
+      <p>If you use bugtraq svn properties, it is highly recommended that you use TortoiseSVN 1.9 or later.</p>
+
+      <p>Otherwise TortoiseSVN will attempt to set these parameters for all newly created directories instead of use inherited properties.</p>
+    </td></tr></table></div>
+  </div>
+</div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04.html">Prev</a>&nbsp;</td><td width="20%" align="center">&nbsp;</td><td width="40%" align="right">&nbsp;<a accesskey="n" href="ch_ssh.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter&nbsp;4.&nbsp;GitLab integration&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;Chapter&nbsp;6.&nbsp;SVN+SSH</td></tr></table></div></body></html>

@@ -1,0 +1,168 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Chapter&nbsp;3.&nbsp;Installation</title><link rel="stylesheet" type="text/css" href="css/manual-multipage.css"><meta name="generator" content="DocBook XSL Stylesheets V1.78.1"><link rel="home" href="index.html" title="Git as Subversion"><link rel="up" href="index.html" title="Git as Subversion"><link rel="prev" href="ch02.html" title="Chapter&nbsp;2.&nbsp;Prerequisites"><link rel="next" href="ch04.html" title="Chapter&nbsp;4.&nbsp;GitLab integration"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter&nbsp;3.&nbsp;Installation</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch02.html">Prev</a>&nbsp;</td><th width="60%" align="center">&nbsp;</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch04.html">Next</a></td></tr></table><hr></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="d5e206"></a>Chapter&nbsp;3.&nbsp;Installation</h1></div></div></div>
+  
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e208"></a>Quick start</h2></div></div></div>
+    
+
+    <p>To try Git as Subversion you need:</p>
+
+    <div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+        <p>Install Java 8 or later;</p>
+      </li><li class="listitem">
+        <p>Download archive from site <a class="ulink" href="https://github.com/bozaro/git-as-svn/releases/latest" target="_top">https://github.com/bozaro/git-as-svn/releases/latest</a>;</p>
+      </li><li class="listitem">
+        <p>After unpacking the archive change working path to the uncompressed directory and run the command:</p>
+
+        <pre class="programlisting">bin/git-as-svn --config doc/config-local.example --show-config</pre>
+      </li></ol></div>
+
+    <p>This will start Git as Subversion server with following configuration:</p>
+
+    <div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+        <p>The server is accessible via svn-protocol on port 3690.</p>
+
+        <p>You can check server with command like:</p>
+
+        <pre class="programlisting">svn ls svn://localhost/example</pre>
+      </li><li class="listitem">
+        <p>To access the server, you can use the user:</p>
+
+        <p>Login: test</p>
+
+        <p>Password: test</p>
+      </li><li class="listitem">
+        <p>Cache and repository will be created in <code class="filename">build</code> directory:</p>
+
+        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            <p><code class="filename">example.git</code> &#8212; repository directory, accessible via svn-protocol;</p>
+          </li><li class="listitem">
+            <p><code class="filename">git-as-svn.mapdb*</code> &#8212; cache files for expensive computed data.</p>
+          </li></ul></div>
+      </li></ol></div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e240"></a>Installation on Debian/Ubuntu</h2></div></div></div>
+    
+
+    <p>You can install Git as Subversion repository on Debian/Ubuntu using the commands:</p>
+
+    <pre class="programlisting"><span class="hl-comment">#!/bin/bash</span>
+<span class="hl-comment"># Add bintray GPG key</span>
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:<span class="hl-number">80</span> --recv-keys 379CE192D401AB6<span class="hl-number">1</span>
+<span class="hl-comment"># Add package source</span>
+<span class="hl-keyword">echo</span> <span class="hl-string">"deb https://dl.bintray.com/bozaro/git-as-svn debian main"</span> | sudo tee /etc/apt/sources.list.d/git-as-svn.list
+<span class="hl-comment"># Install package</span>
+sudo apt-get update
+sudo apt-get install git-as-svn
+sudo apt-get install git-as-svn-lfs</pre>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e244"></a>Package git-as-svn</h3></div></div></div>
+      
+
+      <p>This package contains the Git as Subversion.</p>
+
+      <p>After you install Git as Subversion is run in daemon mode and is available on the svn-protocol on port 3690. The daemon runs as <code class="varname">git</code> user.</p>
+
+      <p>To access the server, you can use the user:</p>
+
+      <p>Login: test</p>
+
+      <p>Password: test</p>
+
+      <p>You check configuration with command like:</p>
+
+      <pre class="programlisting">svn ls --username <span class="hl-keyword">test</span> --password <span class="hl-keyword">test</span> svn://localhost/example/</pre>
+
+      <div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="d5e254"></a>Used directories</h4></div></div></div>
+        
+
+        <p>This package by default is configured to use the following directories:</p>
+
+        <div class="variablelist"><dl class="variablelist"><dt><span class="term">/etc/git-as-svn</span></dt><dd>
+              <p>This directory contains configuration files.</p>
+            </dd><dt><span class="term">/usr/share/doc/git-as-svn</span></dt><dd>
+              <p>This directory contains this documentation to the installed version.</p>
+            </dd><dt><span class="term">/var/git/lfs</span></dt><dd>
+              <p>This directory contains configuration files.</p>
+
+              <p>It must be writable for the user <code class="varname">git</code>.</p>
+            </dd><dt><span class="term">/var/git/repositories</span></dt><dd>
+              <p>This directory is used by default to store the Git-repositories.</p>
+
+              <p>Repositories must be writable for the user <code class="varname">git</code>.</p>
+            </dd><dt><span class="term">/var/log/git-as-svn</span></dt><dd>
+              <p>This directory is used to record log files.</p>
+
+              <p>It must be writable for the user <code class="varname">git</code>.</p>
+
+              <p>Log rotation configuration can be changed by <code class="filename">/etc/git-as-svn/log4j2.xml</code> file.</p>
+            </dd><dt><span class="term">/var/cache/git-as-svn</span></dt><dd>
+              <p>This directory is used to store the Git as Subversion cache.</p>
+
+              <p>It must be writable for the user <code class="varname">git</code>.</p>
+
+              <p>The loss of the contents of this directory is not critical for operation and does not entail the loss of user data.</p>
+            </dd></dl></div>
+      </div>
+    </div>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="git-lfs-authenticate"></a>Package git-as-svn-lfs</h3></div></div></div>
+      
+
+      <p>This package contains the <code class="filename">git-lfs-authenticate</code> script.</p>
+
+      <p>Script <code class="filename">git-lfs-authenticate</code> is used for provide authentication data for HTTP access to Git LFS server for Git-users working with Git repository by SSH (<a class="ulink" href="https://github.com/github/git-lfs/blob/master/docs/api/README.md" target="_top">https://github.com/github/git-lfs/blob/master/docs/api/README.md</a>).</p>
+
+      <p>This script communicates through a Unix Domain Socket with Git as Subversion.</p>
+
+      <p>It send to Git as Subverison user name (<code class="varname">mode</code> = <code class="constant">username</code>) or user identifier (<code class="varname">mode</code> = <code class="constant">external</code>) taken from environment variable. Environment variable name is defined in configuration file via <code class="varname">variable</code> parameter (default value: <code class="constant">GL_ID</code>).</p>
+
+      <p>To check the settings of the script can be run locally on the server the following command:</p>
+
+      <pre class="programlisting"><span class="hl-comment">#!/bin/bash</span>
+<span class="hl-comment"># Set environment variable defined in configuration file</span>
+<span class="hl-keyword">export</span> GL_ID=key-<span class="hl-number">1</span>
+<span class="hl-comment"># Check access to repository</span>
+sudo su git -c <span class="hl-string">"git-lfs-authenticate example download"</span></pre>
+
+      <p>Or on the client the following command:</p>
+
+      <pre class="programlisting"><span class="hl-comment">#!/bin/bash</span>
+ssh git@remote -C <span class="hl-string">"git-lfs-authenticate example download"</span></pre>
+
+      <p>The output should look something like this:</p>
+
+      <pre class="programlisting"><span class="hl-keyword">{</span>
+  <span class="hl-string">"href"</span>: <span class="hl-string">"https://api.github.com/lfs/bozaro/git-as-svn"</span><span class="hl-keyword">,</span>
+  <span class="hl-string">"header"</span>: <span class="hl-keyword">{</span>
+    <span class="hl-string">"Authorization"</span>: <span class="hl-string">"Bearer SOME-SECRET-TOKEN"</span>
+  <span class="hl-keyword">},</span>
+  <span class="hl-string">"expires_at"</span>: <span class="hl-string">"2016-02-19T18:56:59Z"</span>
+<span class="hl-keyword">}</span></pre>
+    </div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e314"></a>Build from source code</h2></div></div></div>
+    
+
+    <p>The project was originally designed for assembly in Ubuntu.</p>
+
+    <p>To build from the source code you need to install locally:</p>
+
+    <div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+        <p>Java 8 (openjdk-8-jdk package);</p>
+      </li><li class="listitem">
+        <p>xml2po (gnome-doc-utils package) &#8212; required for build reference files;</p>
+      </li><li class="listitem">
+        <p>protoc (protobuf-compiler package) &#8212; required for build API.</p>
+      </li></ol></div>
+
+    <p>You can build distribution by command:</p>
+
+    <pre class="programlisting">./gradlew assembleDist</pre>
+
+    <p>Distribution files build in folder: <code class="filename">build/distributions</code></p>
+  </div>
+</div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch02.html">Prev</a>&nbsp;</td><td width="20%" align="center">&nbsp;</td><td width="40%" align="right">&nbsp;<a accesskey="n" href="ch04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter&nbsp;2.&nbsp;Prerequisites&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;Chapter&nbsp;4.&nbsp;GitLab integration</td></tr></table></div></body></html>

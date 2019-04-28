@@ -1,0 +1,191 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Chapter&nbsp;1.&nbsp;About project</title><link rel="stylesheet" type="text/css" href="css/manual-multipage.css"><meta name="generator" content="DocBook XSL Stylesheets V1.78.1"><link rel="home" href="index.html" title="Git as Subversion"><link rel="up" href="index.html" title="Git as Subversion"><link rel="prev" href="index.html" title="Git as Subversion"><link rel="next" href="ch02.html" title="Chapter&nbsp;2.&nbsp;Prerequisites"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter&nbsp;1.&nbsp;About project</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="index.html">Prev</a>&nbsp;</td><th width="60%" align="center">&nbsp;</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch02.html">Next</a></td></tr></table><hr></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="d5e15"></a>Chapter&nbsp;1.&nbsp;About project</h1></div></div></div>
+  
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e17"></a>What is it?</h2></div></div></div>
+    
+
+    <p><span class="productname">Git as Subversion</span> (<a class="ulink" href="https://github.com/bozaro/git-as-svn" target="_top">https://github.com/bozaro/git-as-svn</a>) &#8212; Subversion-server implementation (svn protocol) for Git-repositories.</p>
+
+    <p>This project allows to work with Git-repository using Subversion console client, TortoiseSVN, SvnKit and other similar tools.</p>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e23"></a>What is project goal?</h2></div></div></div>
+    
+
+    <p>The project is designed to allow you to work with the same repository as Git, Subversion and style.</p>
+
+    <div class="glosslist"><dl><dt><span class="glossterm">Git style</span></dt><dd class="glossdef"><p>The basic idea is that the developer works in the local branch. His changes do not affect the work of other developers, but nonetheless they can be tested on CI farm, review by another developer and etc.</p><p>This allows each developer to work independently, as best he can. He can change and saving intermediate versions of documents, taking full advantage of the version control system (including access to the change history) even without network connection to the server.</p><p>Unfortunately, this approach does not work with not mergeable documents (for example, binary files).</p></dd><dt><span class="glossterm">Subversion style</span></dt><dd class="glossdef"><p>The use of a centralized version control system is more convenient in the case of documents do not support the merge (for example, with binary files) due to the presence of the locking mechanism and a simpler and shorter publication cycle changes.</p></dd></dl></div>
+
+    <p>The need to combine Git and Subversion style work with one repository arises from the fact that different employees in the same project are working from fundamentally different data. If you overdo, you Git programmers, and artists like Subversion.</p>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e38"></a>How does it work?</h2></div></div></div>
+    
+
+    <div class="mediaobject"><img src="images/git-as-svn.png"></div>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e43"></a>Where is the Subversion data stored?</h3></div></div></div>
+      
+
+      <p>To represent Subversion repository need to store information about how Subversion-revision number corresponds to which Git-commit. We can't compute this information every time on startup, because first <span class="command"><strong>git push --force</strong></span> change revision order. This information stored persistent in git reference <code class="filename">refs/git-as-svn/*</code>. In particular because it does not require a separate backup Subversion data. Because of this separate backup Subversion data is not necessary.</p>
+
+      <p>Also part of the data necessary for the Subversion repository, is very expensive to get based on Git repository.</p>
+
+      <p>For example:</p>
+
+      <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <p>the revision number with the previous change file;</p>
+        </li><li class="listitem">
+          <p>information about where the file was copied;</p>
+        </li><li class="listitem">
+          <p>MD5 file hash.</p>
+        </li></ul></div>
+
+      <p>In order not to find out their every startup, the data is cached in files. The loss of the cache is not critical for the operation and backup does not make sense.</p>
+
+      <p>File locking information currently stored in the cache file.</p>
+    </div>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e59"></a>How does commit works?</h3></div></div></div>
+      
+
+      <p>One of the most important parts of the system &#8212; to save the changes.</p>
+
+      <p>In general, the following algorithm:</p>
+
+      <div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+          <p>At the moment the command <span class="command"><strong>svn commit</strong></span> client sends to the server of your changes. The server remembers them. At this point comes the first check the relevance of customer data.</p>
+        </li><li class="listitem">
+          <p>The server takes the branch HEAD and begins to create new commit on the basis of client received delta. At this moment there is yet another check of the relevance of customer data.</p>
+        </li><li class="listitem">
+          <p>Validating svn properties for changed data.</p>
+        </li><li class="listitem">
+          <p>The server tries to push the new commit in the current branch of the same repository via console Git client. Next, the result of a push:</p>
+
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              <p>if commits pushed successfully &#8212; loading the latest changes from git commits and rejoice;</p>
+            </li><li class="listitem">
+              <p>if push is not fast forward &#8212; load the latest changes from git commits and go to step 2;</p>
+            </li><li class="listitem">
+              <p>if push declined by hooks &#8212; inform the client;</p>
+            </li><li class="listitem">
+              <p>on another error &#8212; inform the client;</p>
+            </li></ul></div>
+        </li></ol></div>
+
+      <p>Thus, through the use console Git client for push, we avoid the race condition pouring directly change Git repository, and get the native hooks as a nice bonus.</p>
+    </div>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e83"></a>Unlike other solutions</h3></div></div></div>
+      
+
+      <p>The problem of combining Git and Subversion work style with a version control system can be solved in different ways.</p>
+
+      <div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="d5e86"></a>GitHub Subversion support</h4></div></div></div>
+        
+
+        <div class="mediaobject"><img src="images/github.png"></div>
+
+        <p>This is probably the closest analogue.</p>
+
+        <p>The main problem of this implementation is inseparable from GitHub. Also, all of a sudden, this implementation does not support Git LFS.</p>
+
+        <p>In the case of GitHub it is also not clear where the stored mapping between Subversion-revision and Git-commit. This can be a problem when restoring repositories after emergency situations.</p>
+      </div>
+
+      <div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="d5e94"></a>SubGit</h4></div></div></div>
+        
+
+        <div class="mediaobject"><img src="images/subgit.png"></div>
+
+        <p>Web site: <a class="ulink" href="http://www.subgit.com/" target="_top">http://www.subgit.com/</a></p>
+
+        <p>Quite an interesting implementation which supports master-master replication with Git and Subversion repositories. Thereby providing synchronization of repositories is not clear.</p>
+      </div>
+
+      <div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="d5e102"></a>Subversion repository and git svn</h4></div></div></div>
+        
+
+        <div class="mediaobject"><img src="images/git-svn.png"></div>
+
+        <p>This method allows you to use Git with Subversion repository, but using a shared Git repository between multiple developers very difficult.</p>
+
+        <p>At the same time, the developer has to use a specific command-line tool for working with the repository.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d5e109"></a>Features</h2></div></div></div>
+    
+
+    <p>This implementation allows the majority of Subversion-users to work without thinking about what they actually use Git-repository.</p>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e112"></a>What is already there?</h3></div></div></div>
+      
+
+      <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <p>You can use at least the following clients:</p>
+
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+              <p>Subversion console client;</p>
+            </li><li class="listitem">
+              <p>TortoiseSVN;</p>
+            </li><li class="listitem">
+              <p>SvnKit.</p>
+            </li></ul></div>
+        </li><li class="listitem">
+          <p>Supported subversion operations:</p>
+
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+              <p>svn checkout, update, switch, diff</p>
+            </li><li class="listitem">
+              <p>svn commit</p>
+            </li><li class="listitem">
+              <p>svn copy, move<a href="#ftn.d5e133" class="footnote" name="d5e133"><sup class="footnote">[1]</sup></a></p>
+            </li><li class="listitem">
+              <p>svn cat, ls</p>
+            </li><li class="listitem">
+              <p>svn lock, unlock</p>
+            </li><li class="listitem">
+              <p>svn replay (svnsync)</p>
+            </li></ul></div>
+        </li><li class="listitem">
+          <p>Git LFS support;</p>
+        </li><li class="listitem">
+          <p>Git submodules supported;<a href="#ftn.d5e146" class="footnote" name="d5e146"><sup class="footnote">[2]</sup></a></p>
+        </li><li class="listitem">
+          <p>LDAP authorization;</p>
+        </li><li class="listitem">
+          <p>GitLab integration.</p>
+        </li></ul></div>
+    </div>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e152"></a>What is lacking?</h3></div></div></div>
+      
+
+      <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <p>Large gaps in the documents;</p>
+        </li><li class="listitem">
+          <p>You can only access one branch from Subversion.</p>
+        </li></ul></div>
+    </div>
+
+    <div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d5e159"></a>Technical limitations</h3></div></div></div>
+      
+
+      <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <p>It is impossible to change svn properties by Subversion client;</p>
+        </li><li class="listitem">
+          <p>Empty directories is not allowed.</p>
+        </li></ul></div>
+    </div>
+  </div>
+<div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.d5e133" class="footnote">
+                  <p><a href="#d5e133" class="para"><sup class="para">[1] </sup></a>Operations are supported, but the data about the source of a copy is not saved.</p>
+
+                  <p>Information about the source copy is calculated on Git-repository commits.</p>
+                </div><div id="ftn.d5e146" class="footnote">
+              <p><a href="#d5e146" class="para"><sup class="para">[2] </sup></a>Git submodule data available in read only mode.</p>
+            </div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="index.html">Prev</a>&nbsp;</td><td width="20%" align="center">&nbsp;</td><td width="40%" align="right">&nbsp;<a accesskey="n" href="ch02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Git as Subversion&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;Chapter&nbsp;2.&nbsp;Prerequisites</td></tr></table></div></body></html>
